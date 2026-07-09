@@ -1,6 +1,6 @@
 # ViaCerta Frontend
 
-React monorepo for the ViaCerta career-first study-abroad platform. Two apps (portal + advisor) plus shared packages. Consumes the FastAPI backend at `http://localhost:8000` in dev.
+React monorepo for the ViaCerta career-first study-abroad platform. A single app (`apps/web`, student + parent + advisor + internal ops, role-based routing) plus shared packages. Consumes the FastAPI backend at `http://localhost:8000` in dev. See [ADR-007](./ADR-007-single-app-merge.md) for why this is one app, not two.
 
 ## Quick start
 
@@ -10,15 +10,13 @@ nvm use
 pnpm install
 
 # Make sure the backend is running on :8000 first.
-# Generate typed API clients from backend's OpenAPI specs:
+# Generate the typed API client from both of the backend's OpenAPI specs:
 pnpm --filter @viacerta/api-client run generate
 
-# Run both apps in parallel
+# Run the app
 pnpm dev
-
-# or just one:
-pnpm --filter @viacerta/portal dev      # http://localhost:5173
-pnpm --filter @viacerta/advisor dev     # http://localhost:5174
+# or:
+pnpm --filter @viacerta/web dev      # http://localhost:5173
 ```
 
 ## What's where
@@ -26,14 +24,12 @@ pnpm --filter @viacerta/advisor dev     # http://localhost:5174
 | Path | Purpose |
 |---|---|
 | `CLAUDE.md` | Orchestration file for Claude Code — read first |
-| `docs/` | Specification |
-| `adrs/` | Architectural Decision Records |
-| `apps/portal/` | Student + parent app |
-| `apps/advisor/` | Advisor + internal ops app |
+| `*.md` (root) | Specification docs (numbered) and ADRs |
+| `apps/web/` | Single app: student + parent + advisor + internal ops |
 | `packages/ui/` | Shared component library |
-| `packages/api-client/` | Generated typed clients (one per audience) |
+| `packages/api-client/` | Single generated typed client (merged OpenAPI specs) |
 | `packages/design-tokens/` | Colors, typography, Tailwind preset |
-| `packages/utils/` | Shared helpers |
+| `packages/utils/` | Shared helpers, `AppRole`/`AuthUser` types, routes |
 
 ## Stack
 
@@ -50,37 +46,35 @@ pnpm --filter @viacerta/advisor dev     # http://localhost:5174
 
 ## Required env vars
 
-Each app reads from `.env.local` (gitignored). See `.env.example` per app:
+`apps/web` reads from `.env.local` (gitignored). See `apps/web/.env.example`:
 
 ```dotenv
-# apps/portal/.env.example
+# apps/web/.env.example
 VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_NAME=ViaCerta Portal
-
-# apps/advisor/.env.example
-VITE_API_BASE_URL=http://localhost:8000/advisor
-VITE_APP_NAME=ViaCerta Advisor
+VITE_APP_NAME=ViaCerta
+VITE_PARENT_FLOW_ENABLED=true
+VITE_SENTRY_DSN=
 ```
 
 ## Scripts (root `package.json`)
 
 ```bash
-pnpm dev                # run both apps
-pnpm build              # build both apps
+pnpm dev                # run apps/web
+pnpm build              # build apps/web
 pnpm test               # vitest run across all packages
 pnpm test:watch         # vitest watch
 pnpm e2e                # playwright
 pnpm lint               # eslint
 pnpm typecheck          # tsc -b
-pnpm generate-api       # regenerate API types from backend OpenAPI
+pnpm generate-api       # regenerate API types from both backend OpenAPI specs
 ```
 
 ## Contributing
 
-1. New screen → add a feature folder under `apps/<app>/src/features/`, then a thin route file.
+1. New screen → add a feature folder under `apps/web/src/features/`, then a thin route file. Advisor/internal routes must be wrapped in `<RoleGate allow={...}>` in `router.tsx` and added to `SideNav`.
 2. New shared component → add to `packages/ui` with a test.
-3. New API consumed → first verify it exists in `packages/api-client/src/generated/`; regenerate if needed.
-4. New ADR for any architectural decision in `adrs/`.
+3. New API consumed → first verify it exists in `packages/api-client/src/generated/api.d.ts`; regenerate if needed.
+4. New ADR for any architectural decision (`ADR-NNN-*.md` at repo root).
 
 ## License
 

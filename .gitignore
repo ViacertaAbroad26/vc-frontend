@@ -6,6 +6,32 @@
 # Node artifact files
 node_modules/
 dist/
+dist-ssr/
+*.local
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Vite / Vitest / coverage
+.vite/
+coverage/
+
+# Storybook
+storybook-static/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Lighthouse CI
+.lighthouseci/
+
+# pnpm
+.pnpm-store/
 
 # Compiled Java class files
 *.class

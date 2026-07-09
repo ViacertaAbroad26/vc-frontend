@@ -1,8 +1,16 @@
 # ADR-005 — Generated OpenAPI Client (committed types, not runtime fetch)
 
-**Status**: Accepted
+**Status**: Accepted, partially superseded by [ADR-007](./ADR-007-single-app-merge.md)
 **Date**: 2026-06-04
 **Deciders**: Gautam (founder / eng lead)
+
+> **2026-06-11 update**: The codegen rationale (commit generated types, CI
+> diff-check against the live spec) still holds. However, the "two separate
+> generated files / two clients" decision (the "Why two separate generated
+> files, not one" section below) is reversed by ADR-007: `packages/api-client`
+> now exports a single merged `paths` type and a single `apiClient` from one
+> entry point (`@viacerta/api-client`), generated from both the portal and
+> advisor OpenAPI specs merged together.
 
 ## Context
 

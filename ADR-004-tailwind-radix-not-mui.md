@@ -11,7 +11,7 @@ We need a styling and component system that supports:
 - A custom, restrained visual identity (navy/amber, decision-tool not consumer-app — see `docs/03`).
 - Strong accessibility out of the box (keyboard, screen reader, focus rings, ARIA wiring).
 - Component primitives we own and can evolve without library version churn.
-- Two apps with mostly-shared components but room for app-specific overrides.
+- One app (`apps/web`, see [ADR-007](./ADR-007-single-app-merge.md)) with mostly-shared components but room for surface-specific overrides (student/parent vs. advisor/internal).
 - A small bundle.
 
 ## Decision

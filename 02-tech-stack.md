@@ -1,5 +1,8 @@
 # 02 — Tech Stack
 
+> One app, `apps/web` (`@viacerta/web`). See [ADR-007](./ADR-007-single-app-merge.md)
+> for why there's a single config instead of separate `portal`/`advisor` configs.
+
 ## Versions (pin these)
 
 ### Root `package.json`
@@ -20,11 +23,11 @@
 }
 ```
 
-### `apps/portal/package.json`
+### `apps/web/package.json`
 
 ```json
 {
-  "name": "@viacerta/portal",
+  "name": "@viacerta/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -78,7 +81,7 @@
 }
 ```
 
-`apps/advisor/package.json` is identical except for `name` and may pull a few extra deps if needed (heavier tables — `@tanstack/react-table` v8 if you find Recharts insufficient).
+`apps/web` pulls in everything both former apps needed — including heavier tables (`@tanstack/react-table` v8) if Recharts alone isn't enough for the case-queue / data-ops tables.
 
 ### `packages/ui/package.json`
 
@@ -134,8 +137,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./portal": "./src/portal.ts",
-    "./advisor": "./src/advisor.ts",
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
     "./errors": "./src/errors.ts"
   },
   "scripts": {
@@ -156,6 +161,8 @@
   }
 }
 ```
+
+There is no `/portal` or `/advisor` subpath export — `@viacerta/api-client`'s root entry point (`src/index.ts`) exports `apiClient`, `apiAxios`, `authStorage`, and all generated types, generated from both backend OpenAPI specs merged together. See `docs/04-api-client.md`.
 
 ### `packages/design-tokens/package.json`
 
@@ -179,10 +186,10 @@
 }
 ```
 
-## Vite config (per app)
+## Vite config
 
 ```ts
-// apps/portal/vite.config.ts
+// apps/web/vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
@@ -221,16 +228,15 @@ export default defineConfig({
 });
 ```
 
-`apps/advisor/vite.config.ts` differs only in `server.port: 5174`.
+One Vite dev server, port 5173. There is no second app and no port 5174 anymore — see [ADR-007](./ADR-007-single-app-merge.md).
 
-## tsconfig per app
+## tsconfig
 
 ```json
-// apps/portal/tsconfig.json
+// apps/web/tsconfig.json
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -241,8 +247,10 @@ export default defineConfig({
 }
 ```
 
+Note: no `baseUrl` (TS7-deprecated) — `paths` resolve relative to this `tsconfig.json`'s own directory by default.
+
 ```json
-// apps/portal/tsconfig.node.json
+// apps/web/tsconfig.node.json
 {
   "compilerOptions": {
     "composite": true,
@@ -292,40 +300,16 @@ module.exports = {
         { "group": ["axios"], "message": "Use @viacerta/api-client instead of raw axios" }
       ]
     }]
-  },
-  overrides: [
-    {
-      files: ["apps/portal/**/*.{ts,tsx}"],
-      rules: {
-        "no-restricted-imports": ["error", {
-          patterns: [
-            { "group": ["@viacerta/api-client/advisor"],
-              "message": "Portal cannot import advisor API client" }
-          ]
-        }]
-      }
-    },
-    {
-      files: ["apps/advisor/**/*.{ts,tsx}"],
-      rules: {
-        "no-restricted-imports": ["error", {
-          patterns: [
-            { "group": ["@viacerta/api-client/portal"],
-              "message": "Advisor cannot import portal API client" }
-          ]
-        }]
-      }
-    }
-  ]
+  }
 };
 ```
 
+There is a single root config and no `apps/*` overrides. The cross-app `no-restricted-imports` guards that used to block `apps/portal` from importing `@viacerta/api-client/advisor` (and vice versa) are gone — there's only one app and one API client entry point now. Audience separation is enforced at runtime by `<RoleGate>`, not by ESLint import rules. See [ADR-007](./ADR-007-single-app-merge.md).
+
 ## Tailwind config
 
-Both apps use the same preset from `@viacerta/design-tokens`:
-
 ```ts
-// apps/portal/tailwind.config.ts
+// apps/web/tailwind.config.ts
 import type { Config } from "tailwindcss";
 import preset from "@viacerta/design-tokens/tailwind-preset";
 
@@ -360,26 +344,18 @@ export default {
 - pnpm 8
 - Backend running at `http://localhost:8000` (so codegen can hit the OpenAPI endpoints)
 
-## Env vars (per app)
+## Env vars
 
-### `apps/portal/.env.example`
+### `apps/web/.env.example`
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_NAME=ViaCerta Portal
+VITE_APP_NAME=ViaCerta
 VITE_PARENT_FLOW_ENABLED=true
 VITE_SENTRY_DSN=
 ```
 
-### `apps/advisor/.env.example`
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8000/advisor
-VITE_APP_NAME=ViaCerta Advisor
-VITE_SENTRY_DSN=
-```
-
-Both validated at boot via zod in `src/lib/env.ts`:
+Validated at boot via zod in `src/lib/env.ts`:
 
 ```ts
 import { z } from "zod";

@@ -1,14 +1,13 @@
 # 13 — Testing
 
-> Three things deserve disproportionate investment: **audience separation** (no advisor field in portal bundle), **forms** (RHF + zod for every form, including server-error mapping), and **the Aditya happy-path e2e** mirroring the backend's regression test.
+> Three things deserve disproportionate investment: **role-gating** (no advisor/internal route reachable by a student or unauthenticated user), **forms** (RHF + zod for every form, including server-error mapping), and **the Aditya happy-path e2e** mirroring the backend's regression test.
 
 ## Layers
 
 ```
         ┌──────────────────────────────────┐
-        │  Playwright (apps/portal,       │  Aditya end-to-end across both apps
-        │  apps/advisor, both apps in     │
-        │  same test for cross-app flow)   │
+        │  Playwright (@viacerta/web-e2e)   │  Aditya end-to-end + advisor/internal flows,
+        │  one app, one base URL            │  one or more "projects" by auth role
         └──────────────────────────────────┘
        ┌──────────────────────────────────────┐
        │  Component tests (Vitest + RTL + MSW) │  per route + per feature
@@ -24,14 +23,14 @@ Coverage targets:
 |---|---|
 | `packages/utils` | 95% |
 | `packages/api-client` (the wrapper, not generated types) | 90% |
-| `apps/*/src/features/**` | 85% |
-| `apps/*/src/routes/**` | 80% |
-| Audience-separation tests | exhaustive — every parent + student route |
+| `apps/web/src/features/**` | 85% |
+| `apps/web/src/routes/**` | 80% |
+| Role-gating tests (`<RoleGate>` / `<ProtectedRoute>`) | exhaustive — every advisor + internal route, plus unauthenticated access to every protected route |
 
 ## Vitest config
 
 ```ts
-// apps/portal/vitest.config.ts
+// apps/web/vitest.config.ts
 import { defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
@@ -56,9 +55,9 @@ export default mergeConfig(viteConfig, defineConfig({
 }))
 ```
 
-`apps/advisor/vitest.config.ts` is identical; package vitest configs (where present) mirror.
+One Vite app, one Vitest config. Package-level vitest configs (`packages/*`) mirror the shape of `coverage` settings but run against each package's own `src/`.
 
-## Setup file — `apps/portal/src/test/setup.ts`
+## Setup file — `apps/web/src/test/setup.ts`
 
 ```ts
 import '@testing-library/jest-dom/vitest'
@@ -75,7 +74,9 @@ afterEach(() => {
 afterAll(() => server.close())
 ```
 
-## MSW server — `apps/portal/src/test/msw-server.ts`
+This is the only file under `apps/web/src/test/` that exists in the repo so far. The rest of this section describes the intended layout for the files referenced below (`msw-server.ts`, `msw-handlers/`, `render.tsx`, `fixtures/`) — add them as the corresponding tests are written, following `docs/01-project-structure.md`.
+
+## MSW server — `apps/web/src/test/msw-server.ts`
 
 ```ts
 import { setupServer } from 'msw/node'
@@ -86,13 +87,30 @@ export const server = setupServer(...handlers)
 
 ## MSW handlers — happy-path defaults that each test can override
 
+Since `apps/web` consumes both backend OpenAPI specs through one `@viacerta/api-client`, there is now **one combined set of MSW handlers** covering the merged API surface (student/parent endpoints under `/api/v1/portal/*` and advisor/internal endpoints under `/api/v1/advisor/*`). Split into per-domain files for readability and combine them into a single array:
+
 ```ts
-// apps/portal/src/test/msw-handlers.ts
+// apps/web/src/test/msw-handlers/index.ts
+import { authHandlers } from './auth'
+import { studentHandlers } from './student'
+import { advisorHandlers } from './advisor'
+import { internalHandlers } from './internal'
+
+export const handlers = [
+  ...authHandlers,
+  ...studentHandlers,
+  ...advisorHandlers,
+  ...internalHandlers,
+]
+```
+
+```ts
+// apps/web/src/test/msw-handlers/auth.ts
 import { http, HttpResponse } from 'msw'
 
 const API = 'http://localhost:8000/api/v1'
 
-export const handlers = [
+export const authHandlers = [
   http.post(`${API}/auth/login`, async ({ request }) => {
     const body = await request.json() as any
     if (body.password === 'wrong') {
@@ -107,7 +125,16 @@ export const handlers = [
       tokens: { accessToken: 'access', refreshToken: 'refresh', accessExpiresIn: 900 },
     })
   }),
+]
+```
 
+```ts
+// apps/web/src/test/msw-handlers/student.ts
+import { http, HttpResponse } from 'msw'
+
+const API = 'http://localhost:8000/api/v1'
+
+export const studentHandlers = [
   http.get(`${API}/portal/students/me/journey`, () =>
     HttpResponse.json({
       studentId: 's1',
@@ -129,7 +156,7 @@ export const handlers = [
     return HttpResponse.json(sampleIntakeForm(persona ?? 'FINAL_YEAR_UG'))
   }),
 
-  // ... handlers for documents, report, etc.
+  // ... handlers for documents, report, decision, etc.
 ]
 
 function sampleIntakeForm(persona: string) {
@@ -149,7 +176,39 @@ function sampleIntakeForm(persona: string) {
 }
 ```
 
-## Custom render wrapper — `apps/portal/src/test/render.tsx`
+```ts
+// apps/web/src/test/msw-handlers/advisor.ts
+import { http, HttpResponse } from 'msw'
+
+const API = 'http://localhost:8000/api/v1'
+
+export const advisorHandlers = [
+  http.get(`${API}/advisor/cases`, () =>
+    HttpResponse.json({ items: [], total: 0 }),
+  ),
+
+  // ... handlers for student detail, assessment, GCRI, report builder, etc.
+]
+```
+
+```ts
+// apps/web/src/test/msw-handlers/internal.ts
+import { http, HttpResponse } from 'msw'
+
+const API = 'http://localhost:8000/api/v1'
+
+export const internalHandlers = [
+  http.get(`${API}/advisor/leads`, () =>
+    HttpResponse.json({ items: [], total: 0 }),
+  ),
+
+  // ... handlers for document-verify, data-ops, outcomes, users, etc.
+]
+```
+
+This is a starting organization, not a hard rule — group handler files however reads best as the suite grows, as long as they all live under `apps/web/src/test/msw-handlers/` and are combined into the single `handlers` array consumed by `msw-server.ts`.
+
+## Custom render wrapper — `apps/web/src/test/render.tsx`
 
 Wraps every component in a QueryClient + MemoryRouter so tests don't have to repeat boilerplate.
 
@@ -182,92 +241,70 @@ export * from '@testing-library/react'
 export { default as userEvent } from '@testing-library/user-event'
 ```
 
-## Critical test 1 — Audience separation (portal)
+## Critical test 1 — Role-gating (`<RoleGate>` / `<ProtectedRoute>`)
+
+Since [ADR-007](./ADR-007-single-app-merge.md), audience separation is a **runtime routing** property, not a bundle-content property — `apps/web` ships one bundle containing both student-facing and advisor-facing code, types, and route definitions. The equivalent of the old "audience separation" test suite is now **exhaustive role-gating coverage**: every advisor/internal route in `apps/web/src/router.tsx` must have a test asserting that a STUDENT (or PARENT, or unauthenticated) user hitting it is redirected to `/forbidden` (or `/login`), and that an authorized role can render it.
 
 ```tsx
-// apps/portal/src/__tests__/audience-separation.test.tsx
+// apps/web/src/__tests__/role-gating.test.tsx
 import { http, HttpResponse } from 'msw'
 import { server } from '@/test/msw-server'
 import { render, screen, waitFor } from '@/test/render'
-import { ReportPage } from '@/routes/ReportPage'
+import { router } from '@/router'
+import { RouterProvider } from 'react-router-dom'
+import { useAuthStore } from '@/stores/auth-store'
 
-describe('student portal: report page never displays advisor fields', () => {
+function loginAs(role: string) {
+  useAuthStore.setState({
+    user: { id: 'u1', email: 'a@b.com', fullName: 'Test User', role, studentId: role === 'STUDENT' ? 's1' : null },
+    accessToken: 'access',
+  })
+}
+
+describe('RoleGate: advisor/internal routes reject unauthorized roles', () => {
   beforeEach(() => {
-    // Even if backend accidentally leaks them, the UI should never render them
-    server.use(
-      http.get('*/portal/students/me/report', () =>
-        HttpResponse.json({
-          publishedAt: '2026-06-01T10:00:00Z',
-          executiveSummary: 'Aditya is broadly ready with specific gaps to close.',
-          gcss: {
-            final: 76, flag: 'YELLOW',
-            dimensions: [
-              { key: 'CAREER_CLARITY', label: 'Career Clarity', raw: 13, max: 20, advisorInsight: 'Strong goal clarity but...' },
-            ],
-          },
-          gcri: [],
-          roi: { totalProgramCost: 4000000, currency: 'INR', years: [], breakEvenYear: 4 },
-          riskRegister: [{ risk: 'Visa policy shift', severity: 'MODERATE', mitigation: 'Backup plan in NL' }],
-          ninetyDayPlan: [{ week: 1, focus: 'Job market research', actions: ['Read 5 destination-country reports'] }],
-          pdfDownloadUrl: 'https://example.com/report.pdf',
-          // ADD these — they should be ignored
-          rubricVersionId: 'rv1',
-          overrideDelta: 2,
-          confidenceMultiplier: 0.93,
-        }),
-      ),
-    )
+    useAuthStore.setState({ user: null, accessToken: null })
   })
 
-  it('does not render rubric version, override delta, or confidence multiplier', async () => {
-    render(<ReportPage />)
+  it('redirects a STUDENT hitting an advisor route to /forbidden', async () => {
+    loginAs('STUDENT')
 
-    await waitFor(() => screen.getByText(/Aditya is broadly ready/))
+    render(<RouterProvider router={router} />, { initialEntries: ['/students/s1/assessment'] })
 
-    // confirm visible
-    expect(screen.getByText('76')).toBeInTheDocument()
-    expect(screen.getByText(/Career Clarity/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/forbidden|not authorized/i)).toBeInTheDocument())
+  })
 
-    // confirm absent
-    expect(screen.queryByText(/rubric/i)).toBeNull()
-    expect(screen.queryByText(/override/i)).toBeNull()
-    expect(screen.queryByText(/confidence multiplier/i)).toBeNull()
-    expect(screen.queryByText(/rv1/i)).toBeNull()
-    expect(screen.queryByText(/L\d/)).toBeNull()    // evidence levels
+  it('redirects an unauthenticated user to /login', async () => {
+    render(<RouterProvider router={router} />, { initialEntries: ['/cases'] })
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'))
+  })
+
+  it('allows an ADVISOR to render the assessment route', async () => {
+    loginAs('ADVISOR')
+    server.use(
+      http.get('*/advisor/students/:id/assessment', () =>
+        HttpResponse.json({ studentId: 's1', dimensions: [], flag: 'YELLOW' }),
+      ),
+    )
+
+    render(<RouterProvider router={router} />, { initialEntries: ['/students/s1/assessment'] })
+
+    await waitFor(() => expect(screen.queryByText(/forbidden/i)).toBeNull())
   })
 })
 ```
 
-A stronger guarantee: **the portal bundle should not be able to import advisor types**. This is an ESLint check, not a runtime test:
+Run this pattern for every entry under `routes/advisor/*` and `routes/internal/*` in `apps/web/src/router.tsx`, against the `<RoleGate allow={...}>` group it's actually wrapped in (`ADVISOR_ROLES`, `ADMIN_ONLY`, etc. from `apps/web/src/lib/roles.ts`). Also cover `<ProtectedRoute>`: every route except `/login` and `/register` should redirect an unauthenticated user to `/login`.
 
-```ts
-// .eslintrc-no-cross-audience.js (excerpt — full config in docs/02-tech-stack.md)
-// In apps/portal:
-'no-restricted-imports': ['error', {
-  patterns: [
-    { group: ['@viacerta/api-client/advisor', '@viacerta/api-client/advisor/*'],
-      message: 'Portal app cannot import advisor API types.' },
-  ],
-}]
-```
+The backend remains the actual security boundary — a STUDENT's JWT is rejected by `/api/v1/advisor/*` regardless of the frontend. These tests guard the **frontend** experience (no dead-end UI flashes, correct redirects), not the data boundary itself.
 
-A bundle-level check in CI (greps the portal dist for advisor-only enum strings):
-
-```bash
-# scripts/check-portal-bundle.sh
-set -e
-pnpm --filter portal build
-if grep -r "SENIOR_ADVISOR\|overrideDelta\|rubric_version_id" apps/portal/dist/ ; then
-  echo "FAIL: advisor-only strings found in portal bundle"
-  exit 1
-fi
-echo "PASS: portal bundle is clean"
-```
+There is no longer a build-level or bundle-content check (no `scripts/check-portal-bundle.sh`, no `no-restricted-imports` blocking `@viacerta/api-client/advisor` — that subpath doesn't exist). `@viacerta/api-client` exports one merged set of types; `StudentReportResponse` and `AdvisorAssessmentResponse` can both be imported from any feature. See [ADR-007](./ADR-007-single-app-merge.md) for the tradeoff this accepts.
 
 ## Critical test 2 — Form validation (Override dialog)
 
 ```tsx
-// apps/advisor/src/features/assessment/__tests__/OverrideDialog.test.tsx
+// apps/web/src/features/assessment/__tests__/OverrideDialog.test.tsx
 import { render, screen, userEvent } from '@/test/render'
 import { OverrideDialog } from '../OverrideDialog'
 import { http, HttpResponse } from 'msw'
@@ -332,7 +369,7 @@ describe('OverrideDialog', () => {
 ## Critical test 3 — Intake save-and-resume
 
 ```tsx
-// apps/portal/src/features/intake/__tests__/IntakeForm.test.tsx
+// apps/web/src/features/intake/__tests__/IntakeForm.test.tsx
 import { render, screen, userEvent, waitFor } from '@/test/render'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/test/msw-server'
@@ -372,7 +409,7 @@ describe('Intake form save-and-resume', () => {
 import { describe, it, expect, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { createPortalClient } from '../src/portal'
+import { apiClient } from '../index'
 
 const server = setupServer()
 
@@ -396,11 +433,10 @@ describe('refresh interceptor', () => {
       }),
     )
 
-    const client = createPortalClient()
     const [r1, r2, r3] = await Promise.all([
-      client.GET('/portal/students/me/journey'),
-      client.GET('/portal/students/me/journey'),
-      client.GET('/portal/students/me/journey'),
+      apiClient.GET('/api/v1/portal/students/me/journey'),
+      apiClient.GET('/api/v1/portal/students/me/journey'),
+      apiClient.GET('/api/v1/portal/students/me/journey'),
     ])
 
     expect(refreshes).toBe(1)
@@ -422,19 +458,20 @@ describe('refresh interceptor', () => {
     const events: Event[] = []
     window.addEventListener('viacerta:session-expired', (e) => events.push(e))
 
-    const client = createPortalClient()
-    await expect(client.GET('/portal/students/me/journey')).rejects.toMatchObject({
+    await expect(apiClient.GET('/api/v1/portal/students/me/journey')).rejects.toMatchObject({
       title: expect.stringMatching(/sign in/i),
     })
     expect(events).toHaveLength(1)
-    expect(localStorage.getItem('vc.portal.accessToken')).toBeNull()
+    expect(localStorage.getItem('viacerta:access')).toBeNull()
   })
 })
 ```
 
+This single `apiClient` and single `authStorage` namespace (`viacerta:access` / `viacerta:refresh`) replace the old per-app `createPortalClient`/`createAdvisorClient` factories and `vc.portal.*`/`vc.advisor.*` storage keys — there is one refresh interceptor, one `viacerta:session-expired` event, regardless of which audience's endpoint triggered the 401.
+
 ## Playwright — Aditya happy-path e2e
 
-`apps/portal/e2e/aditya-yellow.spec.ts`. Run against a staging backend with seeded data; or a containerised backend pinned to a fixture.
+`apps/web-e2e/e2e/aditya-yellow.spec.ts`. Run against a staging backend with seeded data; or a containerised backend pinned to a fixture.
 
 ```ts
 import { test, expect } from '@playwright/test'
@@ -473,38 +510,45 @@ test.describe('Aditya yellow journey', () => {
     await expect(page.getByText('76')).toBeVisible()
     await expect(page.getByText('Yellow')).toBeVisible()
 
-    // 7. Audience separation — no advisor strings visible
+    // 7. Student-facing report never shows advisor-only fields
     const text = await page.textContent('main')
     expect(text).not.toMatch(/override delta/i)
     expect(text).not.toMatch(/rubric version/i)
-    expect(text).not.toMatch(/L[2-5]/)   // evidence levels not in portal
+    expect(text).not.toMatch(/L[2-5]/)   // evidence levels not shown to students
   })
 })
 ```
 
+This last assertion is now a **content/UI** check, not a bundle-isolation guarantee — the same `apps/web` bundle that renders this page also contains advisor-facing components and types (see [ADR-007](./ADR-007-single-app-merge.md)). The check still matters: it verifies the student-facing report component doesn't *render* advisor-only fields even if the backend response happens to include them, same as Critical test 1's RTL equivalent for the report page.
+
 ## Playwright config
 
+One Playwright project (`@viacerta/web-e2e`), one app under test, one base URL. Student/parent and advisor/internal flows both run against `http://localhost:5173` (or the staging URL); Playwright "projects" are used here to vary the **logged-in role** (via storage state) rather than to target different apps:
+
 ```ts
-// apps/portal/playwright.config.ts
+// apps/web-e2e/playwright.config.ts
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
   use: { baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'student', use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/student.json' } },
+    { name: 'advisor', use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/advisor.json' } },
   ],
   webServer: process.env.CI ? undefined : {
-    command: 'pnpm dev',
+    command: 'pnpm --filter @viacerta/web dev',
     port: 5173,
     reuseExistingServer: true,
   },
 })
 ```
 
-`apps/advisor` mirrors with `port: 5174`.
+`e2e/.auth/*.json` storage states are produced by a Playwright global-setup step that logs in as a seeded STUDENT and a seeded ADVISOR against the test backend. Specs that don't need a logged-in user (registration, login) override `storageState` per-test or run unauthenticated.
 
 ## CI workflow — `.github/workflows/ci.yml`
+
+One test job for `@viacerta/web` (plus the always-separate `packages/*` test jobs, which run as part of the same `pnpm -r` commands):
 
 ```yaml
 name: ci
@@ -525,16 +569,12 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm -r test --coverage
 
-      - run: pnpm --filter portal build
-      - run: pnpm --filter advisor build
-
-      - name: Check portal bundle for advisor leaks
-        run: ./scripts/check-portal-bundle.sh
+      - run: pnpm --filter @viacerta/web build
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
-          files: ./apps/portal/coverage/lcov.info,./apps/advisor/coverage/lcov.info
+          files: ./apps/web/coverage/lcov.info,./packages/*/coverage/lcov.info
 
   e2e:
     needs: test
@@ -547,25 +587,24 @@ jobs:
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm playwright install chromium
-      - run: pnpm --filter portal exec playwright test
+      - run: pnpm --filter @viacerta/web-e2e exec playwright test
         env:
-          PLAYWRIGHT_BASE_URL: ${{ secrets.STAGING_PORTAL_URL }}
-      - run: pnpm --filter advisor exec playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: ${{ secrets.STAGING_ADVISOR_URL }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.STAGING_WEB_URL }}
 ```
+
+`pnpm -r run test` and `pnpm -r run typecheck`/`lint` already cover `apps/web` and every `packages/*` workspace in one pass — there is no separate per-app test job to maintain anymore.
 
 ## What we don't test
 
 - Recharts internals (component rendering only — that we pass the right data + colors).
 - React Query internals (we test our hooks' contracts: invalidation keys, error handling).
-- The generated `@viacerta/api-client/portal` and `/advisor` types (they come from backend `openapi.json`; a backend contract test owns this).
+- The generated `@viacerta/api-client` types in `src/generated/api.d.ts` (they come from the backend's two merged `openapi.json` specs; a backend contract test owns this).
 - Visual snapshots — too fragile; we test text + roles, not pixels.
 
 ## Test data fixtures
 
 ```ts
-// apps/portal/src/test/fixtures/aditya.ts
+// apps/web/src/test/fixtures/aditya.ts
 export const ADITYA_INTAKE_ANSWERS = {
   specific_career_goal: 'Mechatronics & Automation Engineer',
   career_reality_knowledge: 'Robotics engineers in Germany work in auto, industrial...',
@@ -583,4 +622,4 @@ export const ADITYA_EXPECTED_GCSS = {
 }
 ```
 
-Re-used across Vitest and Playwright. Single source of truth for what "Aditya" looks like in the frontend test suite — same fact set the backend's `tests/test_gcss_formula.py::test_aditya_basu_yellow_76` uses.
+Re-used across Vitest (`apps/web/src/test/fixtures/aditya.ts`) and Playwright (`apps/web-e2e` imports the same file, or a copy kept in sync — see `@viacerta/web-e2e`'s `package.json` for how it references `apps/web`'s source). Single source of truth for what "Aditya" looks like in the frontend test suite — same fact set the backend's `tests/test_gcss_formula.py::test_aditya_basu_yellow_76` uses.

@@ -1,14 +1,13 @@
 # 04 — API Client
 
-> One package. Two entry points. Audience separation enforced at the import level.
+> One package. One entry point. Generated from both backend OpenAPI specs, merged.
 
 ## How it works
 
-1. **`scripts/generate.ts`** fetches the backend's two OpenAPI specs and produces `generated/portal.d.ts` and `generated/advisor.d.ts` via `openapi-typescript`. These files are committed to the repo (deterministic builds) and regenerated on every backend change.
-2. **`portal.ts`** wraps an axios client typed against `generated/portal.d.ts`. It exports `portalClient` (typed `GET/POST/PATCH/DELETE` methods) and re-exports allowed types.
-3. **`advisor.ts`** does the same against `generated/advisor.d.ts`.
-4. **`axios-instance.ts`** provides the shared base instance with JWT auth, refresh interceptor, error normalization.
-5. Apps import only from their audience-appropriate entry: portal app → `@viacerta/api-client/portal`; advisor app → `@viacerta/api-client/advisor`. ESLint blocks the wrong one.
+1. **`scripts/generate.ts`** fetches the backend's two OpenAPI specs (`/openapi.json` for student/parent endpoints and `/advisor/openapi.json` for advisor/internal endpoints), merges their `paths` and `components.schemas` objects into one spec object, and runs `openapi-typescript` once on the merged spec to produce `generated/api.d.ts`. This file is committed to the repo (deterministic builds) and regenerated on every backend change.
+2. **`src/index.ts`** wraps an axios client typed against the merged `generated/api.d.ts`. It exports `apiClient` (typed `GET/POST/PATCH/DELETE` methods via `openapi-fetch`), `apiAxios` (raw axios for the rare case we need it, e.g. multipart uploads), `authStorage`, and re-exports the generated types.
+3. **`axios-instance.ts`** provides the shared base instance with JWT auth, refresh interceptor, error normalization.
+4. `apps/web` imports everything — `apiClient`, `apiAxios`, `authStorage`, and all generated types — from `@viacerta/api-client`. There is no `/portal` or `/advisor` subpath; `package.json` `exports` are just `"."` and `"./errors"`. Audience separation is enforced by `<RoleGate>` on routes, not by import-level type isolation — see CLAUDE.md's "Pattern 6" and [ADR-007](./ADR-007-single-app-merge.md).
 
 ## Codegen
 
@@ -23,34 +22,64 @@ import openapiTS from "openapi-typescript";
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const SPECS = [
-  { url: `${BACKEND}/openapi.json`,         out: "src/generated/portal.d.ts" },
-  { url: `${BACKEND}/advisor/openapi.json`, out: "src/generated/advisor.d.ts" },
+  `${BACKEND}/openapi.json`,
+  `${BACKEND}/advisor/openapi.json`,
 ];
 
+const OUT = "src/generated/api.d.ts";
+
 const BANNER = `// AUTO-GENERATED — DO NOT EDIT
-// Source: ViaCerta backend OpenAPI spec
+// Source: ViaCerta backend OpenAPI specs (/openapi.json + /advisor/openapi.json), merged
 // Regenerate: pnpm --filter @viacerta/api-client run generate
 `;
 
-async function main() {
-  for (const { url, out } of SPECS) {
-    process.stdout.write(`Fetching ${url}... `);
-    const output = await openapiTS(url, {
-      exportType: true,
-      enum: true,
-      formatOptions: { semi: true, singleQuote: false, trailingComma: "all" },
-    });
-    await mkdir(dirname(out), { recursive: true });
-    await writeFile(out, BANNER + output, "utf8");
-    process.stdout.write("done\n");
+async function fetchSpec(url: string): Promise<Record<string, any>> {
+  process.stdout.write(`Fetching ${url}... `);
+  const resp = await fetch(url);
+  const spec = await resp.json();
+  process.stdout.write("done\n");
+  return spec;
+}
+
+function mergeSpecs(specs: Record<string, any>[]): Record<string, any> {
+  const [base, ...rest] = specs;
+  const merged = structuredClone(base);
+
+  for (const spec of rest) {
+    merged.paths = { ...merged.paths, ...spec.paths };
+    merged.components = {
+      ...merged.components,
+      schemas: {
+        ...merged.components?.schemas,
+        ...spec.components?.schemas,
+      },
+    };
   }
-  console.log("✓ Generated 2 spec files");
+
+  return merged;
+}
+
+async function main() {
+  const specs = await Promise.all(SPECS.map(fetchSpec));
+  const merged = mergeSpecs(specs);
+
+  const output = await openapiTS(merged, {
+    exportType: true,
+    enum: true,
+    formatOptions: { semi: true, singleQuote: false, trailingComma: "all" },
+  });
+
+  await mkdir(dirname(OUT), { recursive: true });
+  await writeFile(OUT, BANNER + output, "utf8");
+  console.log(`✓ Generated ${OUT} from ${SPECS.length} merged specs`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
 ```
 
 Run via `pnpm --filter @viacerta/api-client run generate` (after backend is up on `localhost:8000`).
+
+**Known sharp edge** (flagged as a follow-up in [ADR-007](./ADR-007-single-app-merge.md)): if both specs define a schema with the same name but different shapes, the spread-merge of `components.schemas` silently lets the later spec's version win. Not yet hit in practice — if it occurs, fix by namespacing the colliding schema names in `mergeSpecs` rather than reverting to two generated files.
 
 ## Base axios
 
@@ -64,10 +93,9 @@ import { normalizeError } from "./errors";
 
 type CreateOpts = {
   baseURL: string;
-  audience: "portal" | "advisor";
 };
 
-export function createAxios({ baseURL, audience }: CreateOpts): AxiosInstance {
+export function createAxios({ baseURL }: CreateOpts): AxiosInstance {
   const instance = axios.create({
     baseURL,
     timeout: 30_000,
@@ -76,7 +104,7 @@ export function createAxios({ baseURL, audience }: CreateOpts): AxiosInstance {
 
   // Request: attach JWT
   instance.interceptors.request.use((config) => {
-    const token = authStorage.getAccessToken(audience);
+    const token = authStorage.getAccessToken();
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
     }
@@ -90,7 +118,7 @@ export function createAxios({ baseURL, audience }: CreateOpts): AxiosInstance {
   );
 
   // Refresh interceptor (handles 401 with one retry)
-  attachRefreshInterceptor(instance, audience);
+  attachRefreshInterceptor(instance);
 
   return instance;
 }
@@ -102,32 +130,28 @@ We use **localStorage** for tokens (not httpOnly cookies) because we need to rea
 
 ```ts
 // packages/api-client/src/auth-storage.ts
-type Audience = "portal" | "advisor";
-
-const ACCESS_KEY = (a: Audience) => `viacerta:${a}:access`;
-const REFRESH_KEY = (a: Audience) => `viacerta:${a}:refresh`;
+const ACCESS_KEY = "viacerta:access";
+const REFRESH_KEY = "viacerta:refresh";
 
 export const authStorage = {
-  getAccessToken(audience: Audience): string | null {
-    return localStorage.getItem(ACCESS_KEY(audience));
+  getAccessToken(): string | null {
+    return localStorage.getItem(ACCESS_KEY);
   },
-  getRefreshToken(audience: Audience): string | null {
-    return localStorage.getItem(REFRESH_KEY(audience));
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_KEY);
   },
-  setTokens(audience: Audience, tokens: { accessToken: string; refreshToken: string }) {
-    localStorage.setItem(ACCESS_KEY(audience), tokens.accessToken);
-    localStorage.setItem(REFRESH_KEY(audience), tokens.refreshToken);
+  setTokens(tokens: { accessToken: string; refreshToken: string }) {
+    localStorage.setItem(ACCESS_KEY, tokens.accessToken);
+    localStorage.setItem(REFRESH_KEY, tokens.refreshToken);
   },
-  clear(audience: Audience) {
-    localStorage.removeItem(ACCESS_KEY(audience));
-    localStorage.removeItem(REFRESH_KEY(audience));
-  },
-  clearAll() {
-    this.clear("portal");
-    this.clear("advisor");
+  clear() {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
   },
 };
 ```
+
+There is a single `authStorage` namespace (`viacerta:access` / `viacerta:refresh`) for the whole app — no per-audience prefix.
 
 ### Refresh interceptor
 
@@ -137,15 +161,13 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 import { authStorage } from "./auth-storage";
 
-type Audience = "portal" | "advisor";
-
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshTokens(baseURL: string, audience: Audience): Promise<string | null> {
+async function refreshTokens(baseURL: string): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
-    const refresh = authStorage.getRefreshToken(audience);
+    const refresh = authStorage.getRefreshToken();
     if (!refresh) return null;
     try {
       const resp = await axios.post(
@@ -154,13 +176,13 @@ async function refreshTokens(baseURL: string, audience: Audience): Promise<strin
         { timeout: 10_000 },
       );
       const tokens = resp.data.tokens;
-      authStorage.setTokens(audience, {
+      authStorage.setTokens({
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
       return tokens.accessToken;
     } catch {
-      authStorage.clear(audience);
+      authStorage.clear();
       return null;
     } finally {
       refreshPromise = null;
@@ -170,7 +192,7 @@ async function refreshTokens(baseURL: string, audience: Audience): Promise<strin
   return refreshPromise;
 }
 
-export function attachRefreshInterceptor(instance: AxiosInstance, audience: Audience) {
+export function attachRefreshInterceptor(instance: AxiosInstance) {
   instance.interceptors.response.use(
     (resp) => resp,
     async (error) => {
@@ -186,10 +208,10 @@ export function attachRefreshInterceptor(instance: AxiosInstance, audience: Audi
       }
       original.__retry = true;
 
-      const newToken = await refreshTokens(instance.defaults.baseURL!, audience);
+      const newToken = await refreshTokens(instance.defaults.baseURL!);
       if (!newToken) {
         // surface a clear "session expired" error; app routes back to /login
-        window.dispatchEvent(new CustomEvent("viacerta:session-expired", { detail: { audience } }));
+        window.dispatchEvent(new CustomEvent("viacerta:session-expired"));
         return Promise.reject(error);
       }
       original.headers.set("Authorization", `Bearer ${newToken}`);
@@ -257,31 +279,31 @@ export function isValidationError(e: unknown): e is ApiError {
 }
 ```
 
-## Audience-specific entries
+## Single entry point
 
-### `packages/api-client/src/portal.ts`
+### `packages/api-client/src/index.ts`
 
 ```ts
 import createClient from "openapi-fetch";
-import type { paths as PortalPaths } from "./generated/portal";
+import type { paths, components } from "./generated/api";
 import { createAxios } from "./axios-instance";
-
-// We expose two layers:
-//   1. portalAxios — raw axios for the rare case we need it (multipart uploads)
-//   2. portalClient — openapi-fetch typed client
-// Most code uses portalClient. Forms with files use portalAxios.
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
-export const portalAxios = createAxios({ baseURL: BASE_URL, audience: "portal" });
+// We expose two layers:
+//   1. apiAxios — raw axios for the rare case we need it (multipart uploads)
+//   2. apiClient — openapi-fetch typed client
+// Most code uses apiClient. Forms with files use apiAxios.
 
-export const portalClient = createClient<PortalPaths>({
+export const apiAxios = createAxios({ baseURL: BASE_URL });
+
+export const apiClient = createClient<paths>({
   baseUrl: BASE_URL,
   fetch: async (input, init) => {
     // route fetch through axios to reuse interceptors
     const url = typeof input === "string" ? input : input.url;
     const method = (init?.method ?? "GET").toUpperCase();
-    const resp = await portalAxios.request({
+    const resp = await apiAxios.request({
       url, method,
       data: init?.body,
       headers: Object.fromEntries(new Headers(init?.headers ?? {}).entries()),
@@ -293,66 +315,40 @@ export const portalClient = createClient<PortalPaths>({
   },
 });
 
-// Re-export the subset of types portal screens need
-export type { components as PortalComponents } from "./generated/portal";
+export { authStorage } from "./auth-storage";
 
-// Convenience exports of common shapes
-export type StudentReport = PortalComponents["schemas"]["StudentReportResponse"];
-export type StudentJourney = PortalComponents["schemas"]["StudentJourneyResponse"];
-export type IntakeForm = PortalComponents["schemas"]["IntakeStartResponse"];
-export type AuthEnvelope = PortalComponents["schemas"]["AuthEnvelope"];
-// ... etc — keep this list trimmed to what's actually used
+// Re-export the generated types
+export type { paths, components } from "./generated/api";
+
+// Convenience exports of common shapes — keep this list trimmed to what's actually used
+export type StudentReport = components["schemas"]["StudentReportResponse"];
+export type StudentJourney = components["schemas"]["StudentJourneyResponse"];
+export type IntakeForm = components["schemas"]["IntakeStartResponse"];
+export type AuthEnvelope = components["schemas"]["AuthEnvelope"];
+export type AdvisorAssessment = components["schemas"]["AdvisorAssessmentResponse"];
+export type CaseListResponse = components["schemas"]["CaseListResponse"];
+export type GcriResults = components["schemas"]["GcriResultsResponse"];
+export type AdvisorReport = components["schemas"]["AdvisorReportResponse"];
+export type OutcomeCoverageResponse = components["schemas"]["OutcomeCoverageResponse"];
+export type CohortOutcomeCoverage = components["schemas"]["CohortOutcomeCoverage"];
 ```
 
-### `packages/api-client/src/advisor.ts`
-
-```ts
-import createClient from "openapi-fetch";
-import type { paths as AdvisorPaths } from "./generated/advisor";
-import { createAxios } from "./axios-instance";
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/advisor";
-
-export const advisorAxios = createAxios({ baseURL: BASE_URL, audience: "advisor" });
-
-export const advisorClient = createClient<AdvisorPaths>({
-  baseUrl: BASE_URL,
-  fetch: async (input, init) => {
-    const url = typeof input === "string" ? input : input.url;
-    const method = (init?.method ?? "GET").toUpperCase();
-    const resp = await advisorAxios.request({
-      url, method, data: init?.body,
-      headers: Object.fromEntries(new Headers(init?.headers ?? {}).entries()),
-    });
-    return new Response(JSON.stringify(resp.data), {
-      status: resp.status,
-      headers: { "Content-Type": "application/json" },
-    });
-  },
-});
-
-export type { components as AdvisorComponents } from "./generated/advisor";
-
-export type AdvisorAssessment = AdvisorComponents["schemas"]["AdvisorAssessmentResponse"];
-export type CaseListResponse = AdvisorComponents["schemas"]["CaseListResponse"];
-export type GcriResults = AdvisorComponents["schemas"]["GcriResultsResponse"];
-export type AdvisorReport = AdvisorComponents["schemas"]["AdvisorReportResponse"];
-```
+Both student/parent and advisor/internal types come from the same `paths`/`components` objects — there's no separate `PortalComponents`/`AdvisorComponents` split anymore. Any feature can import any type from `@viacerta/api-client`; the boundary that matters is which routes a role can reach (`<RoleGate>`), not which types a file can import.
 
 ## Usage in components
 
 ### Query
 
 ```tsx
-// apps/portal/src/features/report/useStudentReport.ts
+// apps/web/src/features/report/useStudentReport.ts
 import { useQuery } from "@tanstack/react-query";
-import { portalClient, type StudentReport } from "@viacerta/api-client/portal";
+import { apiClient, type StudentReport } from "@viacerta/api-client";
 
 export function useStudentReport() {
   return useQuery({
     queryKey: ["studentReport", "latest"],
     queryFn: async (): Promise<StudentReport> => {
-      const { data, error } = await portalClient.GET("/api/v1/portal/students/me/report");
+      const { data, error } = await apiClient.GET("/api/v1/portal/students/me/report");
       if (error) throw error;
       return data!;
     },
@@ -364,17 +360,17 @@ export function useStudentReport() {
 ### Mutation
 
 ```tsx
-// apps/advisor/src/features/assessment/useGcssOverride.ts
+// apps/web/src/features/assessment/useGcssOverride.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { advisorClient, type AdvisorComponents } from "@viacerta/api-client/advisor";
+import { apiClient, type components } from "@viacerta/api-client";
 
-type OverrideBody = AdvisorComponents["schemas"]["OverrideRequest"];
+type OverrideBody = components["schemas"]["OverrideRequest"];
 
 export function useGcssOverride(studentId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: OverrideBody) => {
-      const { data, error } = await advisorClient.POST(
+      const { data, error } = await apiClient.POST(
         "/api/v1/advisor/students/{student_id}/assessment/override",
         { params: { path: { student_id: studentId } }, body },
       );
@@ -392,9 +388,9 @@ export function useGcssOverride(studentId: string) {
 ### Multipart upload (raw axios)
 
 ```tsx
-// apps/portal/src/features/documents/useDocumentUpload.ts
+// apps/web/src/features/documents/useDocumentUpload.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { portalAxios } from "@viacerta/api-client/portal";
+import { apiAxios } from "@viacerta/api-client";
 
 export function useDocumentUpload() {
   const qc = useQueryClient();
@@ -403,7 +399,7 @@ export function useDocumentUpload() {
       const form = new FormData();
       form.append("type", type);
       form.append("file", file);
-      const { data } = await portalAxios.post("/api/v1/portal/students/me/documents", form, {
+      const { data } = await apiAxios.post("/api/v1/portal/students/me/documents", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return data;
@@ -437,11 +433,11 @@ const onClick = () => {
 
 ## Codegen workflow
 
-1. Backend dev makes an endpoint change → updates the OpenAPI spec automatically.
+1. Backend dev makes an endpoint change → updates the relevant OpenAPI spec automatically.
 2. Frontend dev runs `pnpm generate-api`.
-3. Git diff shows what changed in `generated/*.d.ts`.
+3. Git diff shows what changed in `generated/api.d.ts`.
 4. If types changed in a breaking way, TypeScript compile fails — fix the call sites.
-5. Commit both the generated files and the call-site fixes together.
+5. Commit both the generated file and the call-site fixes together.
 
 This makes the contract between backend and frontend **enforceable via the type system**.
 

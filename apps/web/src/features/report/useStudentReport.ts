@@ -1,0 +1,21 @@
+import { useQuery } from "@tanstack/react-query";
+import { ApiError, apiAxios, type StudentReport } from "@viacerta/api-client";
+
+export function useStudentReport() {
+  return useQuery({
+    queryKey: ["studentReport"],
+    queryFn: async () => {
+      const { data } = await apiAxios.get<StudentReport>("/api/v1/portal/students/me/report");
+      return data;
+    },
+    // A 404 here means the advisor hasn't published a report yet — not a
+    // real failure, so don't burn through retry backoff before showing the
+    // "report is being prepared" state.
+    retry: (failureCount, error) => !(error instanceof ApiError && error.status === 404) && failureCount < 3,
+    refetchInterval: (query) => {
+      if (query.state.data && !query.state.data.publishedAt) return 5_000;
+      if (query.state.error instanceof ApiError && query.state.error.status === 404) return 5_000;
+      return false;
+    },
+  });
+}

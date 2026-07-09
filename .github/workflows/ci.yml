@@ -1,0 +1,51 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r lint
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+
+      - run: pnpm --filter @viacerta/web build
+
+      - run: pnpm --filter @viacerta/web size
+
+  lighthouse:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @viacerta/web build
+      - run: pnpm --filter @viacerta/web run lighthouse
+
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ vars.STAGING_WEB_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @viacerta/web-e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @viacerta/web-e2e exec playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_WEB_URL }}
+          PLAYWRIGHT_API_BASE_URL: ${{ vars.STAGING_API_URL }}

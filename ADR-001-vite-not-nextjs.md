@@ -12,7 +12,7 @@ We need: typed end-to-end contracts, fast dev iteration, audience separation enf
 
 ## Decision
 
-Use **Vite 5** to build each app as a **client-side SPA**. No SSR, no edge functions, no Next.js framework. Two separate Vite projects (`apps/portal`, `apps/advisor`) inside one pnpm monorepo (`docs/01`).
+Use **Vite 5** to build the app as a **client-side SPA**. No SSR, no edge functions, no Next.js framework. ~~Two separate Vite projects (`apps/portal`, `apps/advisor`)~~ — as of [ADR-007](./ADR-007-single-app-merge.md), a single Vite project (`apps/web`) inside one pnpm monorepo (`docs/01`). The Vite-not-Next.js decision itself is unaffected.
 
 ## Rationale
 

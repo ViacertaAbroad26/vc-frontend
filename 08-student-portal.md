@@ -1,6 +1,14 @@
 # 08 — Student Portal Screens
 
-> Every screen in `apps/portal` for the STUDENT role. Each section: route, components, hooks consumed, full TSX where the screen is non-trivial.
+> These are the student/parent surface's screens within the single
+> `apps/web` app (see [ADR-007](./ADR-007-single-app-merge.md)). Routes live
+> under `apps/web/src/routes/student/`, feature code under
+> `apps/web/src/features/{intake,documents,pending,report,decision,journey}/`.
+> "Portal" below is used as a logical label for this surface, not a separate
+> deployment — there is one Vite dev server (port 5173), one build, one
+> deploy.
+
+> Every screen for the STUDENT role. Each section: route, components, hooks consumed, full TSX where the screen is non-trivial.
 
 ## Screen map
 
@@ -19,7 +27,12 @@
 
 Post-login redirect (see `docs/05`) sends STUDENT to `/` if intake complete, else `/intake`.
 
-## Layout shell — `apps/portal/src/components/PortalShell.tsx`
+## Layout shell — `apps/web/src/components/layout/PortalShell.tsx`
+
+This is a student/parent-flavored layout used alongside the shared
+`AppShell`/`SideNav`/`TopBar` primitives in
+`apps/web/src/components/layout/` (see `docs/01-project-structure.md`). It
+renders inside a route subtree wrapped in `<ProtectedRoute>`.
 
 ```tsx
 import { Outlet, NavLink } from 'react-router-dom'
@@ -73,7 +86,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 ## Screen 1 — RegisterPage
 
-`apps/portal/src/routes/RegisterPage.tsx` (full implementation, since it shows the canonical form pattern):
+`apps/web/src/routes/auth/RegisterPage.tsx` (full implementation, since it shows the canonical form pattern):
 
 ```tsx
 import { useForm } from 'react-hook-form'
@@ -203,7 +216,7 @@ export function RegisterPage() {
 The single most-used screen. Shows where the student is in the journey, what's pending, what's next. Polls journey every 10s while in pending states.
 
 ```tsx
-// apps/portal/src/routes/JourneyDashboard.tsx
+// apps/web/src/routes/student/DashboardPage.tsx
 import { Link } from 'react-router-dom'
 import { useJourney } from '@/hooks/use-journey'
 import { JourneyTimeline } from '@/features/journey/JourneyTimeline'
@@ -289,10 +302,10 @@ function flagBlurb(flag: string) {
 ### NextActionCard
 
 ```tsx
-// apps/portal/src/features/journey/NextActionCard.tsx
+// apps/web/src/features/journey/NextActionCard.tsx
 import { Link } from 'react-router-dom'
 import { Card, CardBody, Button } from '@viacerta/ui'
-import type { Journey } from '@viacerta/api-client/portal'
+import type { Journey } from '@viacerta/api-client'
 
 export function NextActionCard({ journey }: { journey: Journey }) {
   const action = nextAction(journey.currentStateCode)
@@ -383,7 +396,7 @@ function nextAction(state: string) {
 Persona picker, then `POST /intake/start`, then redirect to `/intake/:submissionId`.
 
 ```tsx
-// apps/portal/src/routes/IntakeStartPage.tsx
+// apps/web/src/routes/student/IntakeStartPage.tsx
 import { useNavigate } from 'react-router-dom'
 import { Card, CardBody, Button } from '@viacerta/ui'
 import { useStartIntake } from '@/hooks/use-start-intake'
@@ -440,7 +453,7 @@ export function IntakeStartPage() {
 Already covered in detail in `docs/07-forms-and-validation.md`. The page wires:
 
 ```tsx
-// apps/portal/src/routes/IntakeFormPage.tsx
+// apps/web/src/routes/student/IntakeFormPage.tsx
 import { useParams } from 'react-router-dom'
 import { useIntakeSubmission, useIntakeForm } from '@/hooks/use-intake'
 import { IntakeForm } from '@/features/intake/IntakeForm'
@@ -469,7 +482,7 @@ function Inner({ submissionId }: { submissionId: string }) {
 Tile per required document. Each tile shows the current evidence_level badge, upload button, verification status.
 
 ```tsx
-// apps/portal/src/routes/DocumentsPage.tsx
+// apps/web/src/routes/student/DocumentsPage.tsx
 import { Card, CardBody, Button, AsyncBoundary } from '@viacerta/ui'
 import { EvidenceLevelBadge } from '@viacerta/ui/viacerta'
 import { useDocuments, useDocumentRequirements, useUploadDocument } from '@/hooks/use-documents'
@@ -599,7 +612,7 @@ function humanFileSize(bytes: number): string {
 Shown between AI pre-score in flight and report build complete. Polls every 10s.
 
 ```tsx
-// apps/portal/src/routes/PendingAssessmentPage.tsx
+// apps/web/src/routes/student/PendingPage.tsx
 import { Card, CardBody } from '@viacerta/ui'
 import { Loader2 } from 'lucide-react'
 import { useJourney } from '@/hooks/use-journey'
@@ -641,7 +654,7 @@ export function PendingAssessmentPage() {
 The published report viewer. Six sections, audience-filtered (no advisor-only fields), with PDF download.
 
 ```tsx
-// apps/portal/src/routes/ReportPage.tsx
+// apps/web/src/routes/student/ReportPage.tsx
 import { useStudentReport } from '@/hooks/use-student-report'
 import { Card, CardBody, Button, AsyncBoundary } from '@viacerta/ui'
 import { ReportDisclaimer, GcssFlagBadge, ScoreGauge, DimensionBar, RiskBandPill } from '@viacerta/ui/viacerta'
@@ -714,6 +727,10 @@ function Inner() {
       </Section>
 
       <Section title="Country-risk analysis">
+        {/* Phase 3 #1: each country card includes an OutcomePredictionBand showing
+            outcomeProbabilityLow-outcomeProbabilityHigh as a range (e.g. "54-70%").
+            No confidence level/rationale/model version here — advisor-only fields.
+            See docs/12-visualization.md "Outcome prediction band". */}
         <GcriBreakdown results={report.gcri} />
       </Section>
 
@@ -775,7 +792,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 Three-choice gate after Session 2.
 
 ```tsx
-// apps/portal/src/routes/DecisionPage.tsx
+// apps/web/src/routes/student/DecisionGatePage.tsx
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'

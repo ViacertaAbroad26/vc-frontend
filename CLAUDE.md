@@ -1,6 +1,6 @@
 # CLAUDE.md — ViaCerta Frontend
 
-> **For Claude Code**: read this first. Then read `docs/` in numeric order. This is a **pnpm monorepo** with two React apps (portal + advisor) and shared packages. Build the apps to consume the backend's two OpenAPI specs.
+> **For Claude Code**: read this first. Then read the numbered docs (`00-context.md` through `15-development-roadmap.md`) in order. This is a **pnpm monorepo** with a single React app (`apps/web`) and shared packages. The app consumes both of the backend's OpenAPI specs through one merged, generated API client. See [ADR-007](./ADR-007-single-app-merge.md) for why this is one app, not two.
 
 ---
 
@@ -29,36 +29,43 @@ Do not substitute. ADR-001..006 explain why.
 
 ---
 
-## Two apps, not one
+## One app, role-based routing
 
 ```
 frontend/
 ├── apps/
-│   ├── portal/      # student + parent  → consumes /openapi.json
-│   └── advisor/     # advisor + internal → consumes /advisor/openapi.json
+│   └── web/         # student + parent + advisor + internal — single deploy
 └── packages/
     ├── ui/          # shared component library (Button, Input, Card, …)
-    ├── api-client/  # generated typed clients
+    ├── api-client/  # single generated typed client (merged OpenAPI specs)
     ├── design-tokens/  # colors, spacing, type scale
-    └── utils/       # shared helpers (date, format, types)
+    └── utils/       # shared helpers (date, format, types, AppRole, routes)
 ```
 
-**Why two apps**: audience separation enforced at the **build level**. The portal bundle literally cannot ship advisor-only types or components because they don't exist in its dependency graph. Same principle as the backend's separate OpenAPI specs.
+**One app, one build, one deploy** (see [ADR-007](./ADR-007-single-app-merge.md)). `apps/web` consumes both backend OpenAPI specs (`/openapi.json` and `/advisor/openapi.json`), merged at codegen time into a single `paths`/`components.schemas` type used by `@viacerta/api-client`.
+
+Audience separation is enforced **at runtime**, not at the bundle level:
+
+- `<ProtectedRoute>` gates everything except `/login` and `/register`.
+- `<RoleGate allow={...}>` gates advisor and internal-ops routes by role.
+- `<SideNav>` only renders nav items the current user's role can access.
+
+The backend remains the actual security boundary — a STUDENT's JWT cannot call `/api/v1/advisor/*` regardless of what's in the frontend bundle. ADR-002 (now superseded) explains the build-level-isolation approach this replaced and why it was given up.
 
 ---
 
 ## What this frontend does
 
-1. **Portal** (`apps/portal`): student goes from sign-up → persona-routed intake → document upload → AI pre-score waiting state → report viewer → decision gate. Parent gets a slim summary view.
-2. **Advisor** (`apps/advisor`): advisor sees case queue → student detail → assessment with overrides → confirm → trigger GCRI → write 6 insight blocks → publish report. Internal ops sees leads, documents to verify, data ops.
-3. Both apps share components from `packages/ui` and a generated, typed API client from `packages/api-client`.
+1. **Student/parent flow**: student goes from sign-up → persona-routed intake → document upload → AI pre-score waiting state → report viewer → decision gate. Parent gets a slim summary view at `/parent/students/:studentId`.
+2. **Advisor/internal flow**: advisor sees case queue → student detail → assessment with overrides → confirm → trigger GCRI → write 6 insight blocks → publish report. Internal ops sees leads, documents to verify, data ops, outcomes, and user management — all role-gated within the same app.
+3. Both flows share components from `packages/ui`, role types/routes from `packages/utils`, and the single generated, typed API client from `packages/api-client`. Landing route (`/`) redirects each user to the right surface via `destinationByRole(role, studentId)`.
 
 ---
 
 ## Read order
 
 1. `docs/00-context.md` — product context, audiences, what each app does
-2. `docs/01-project-structure.md` — exact folder layout for both apps + packages
+2. `docs/01-project-structure.md` — exact folder layout for `apps/web` + packages
 3. `docs/02-tech-stack.md` — package.json, vite.config, tsconfig
 4. `docs/03-design-system.md` — colors, spacing, typography, component primitives
 5. `docs/04-api-client.md` — OpenAPI codegen, axios wrapper, JWT refresh interceptor
@@ -81,12 +88,12 @@ frontend/
 
 | Rule | Where enforced |
 |---|---|
-| Portal app never imports anything from advisor-only types | TypeScript build fails — `packages/api-client/portal` doesn't export advisor types |
+| Advisor/internal routes are gated by role at runtime | `<RoleGate allow={...}>` wrapping each advisor/internal route in `apps/web/src/router.tsx` |
 | All API calls go through generated client in `@viacerta/api-client` | ESLint `no-restricted-imports` blocks raw `axios` outside the client package |
 | All forms use react-hook-form + zod | Lint rule blocks `useState` for form fields beyond 1 field |
-| All routes are protected by role except `/login` and `/register` | Router config in `apps/*/src/router.tsx` |
+| All routes are protected by role except `/login` and `/register` | Router config in `apps/web/src/router.tsx` |
 | JWT in memory + refresh token in httpOnly cookie OR localStorage with strict rotation | See `docs/05-auth-and-routing.md` |
-| No advisor-only field names ever appear in portal app code | Generated types simply don't include them |
+| `<SideNav>` only shows links the current user's role can access | Role-group filtering in `apps/web/src/components/layout/SideNav.tsx` via `@/lib/roles` |
 | Audience disclaimer always visible on every report view | `<ReportDisclaimer />` mounted in `<ReportLayout />` |
 | Loading + error + empty states are mandatory for every async UI | Codified via the `<AsyncBoundary />` HOC |
 
@@ -109,91 +116,68 @@ frontend/
 ├── adrs/
 │
 ├── apps/
-│   ├── portal/
-│   │   ├── package.json
-│   │   ├── vite.config.ts
-│   │   ├── tsconfig.json
-│   │   ├── index.html
-│   │   ├── tailwind.config.ts
-│   │   ├── postcss.config.cjs
-│   │   ├── public/
-│   │   ├── src/
-│   │   │   ├── main.tsx
-│   │   │   ├── App.tsx
-│   │   │   ├── router.tsx
-│   │   │   ├── routes/
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── LoginPage.tsx
-│   │   │   │   │   └── RegisterPage.tsx
-│   │   │   │   ├── student/
-│   │   │   │   │   ├── DashboardPage.tsx
-│   │   │   │   │   ├── intake/
-│   │   │   │   │   │   ├── IntakeStartPage.tsx
-│   │   │   │   │   │   ├── IntakeFormPage.tsx
-│   │   │   │   │   │   └── IntakeSubmitPage.tsx
-│   │   │   │   │   ├── documents/
-│   │   │   │   │   │   └── DocumentsPage.tsx
-│   │   │   │   │   ├── pending/
-│   │   │   │   │   │   └── AiPreScorePendingPage.tsx
-│   │   │   │   │   ├── report/
-│   │   │   │   │   │   ├── ReportPage.tsx
-│   │   │   │   │   │   └── ReportPdfPage.tsx
-│   │   │   │   │   ├── decision/
-│   │   │   │   │   │   └── DecisionGatePage.tsx
-│   │   │   │   │   └── journey/
-│   │   │   │   │       └── JourneyPage.tsx
-│   │   │   │   └── parent/
-│   │   │   │       └── ParentSummaryPage.tsx
-│   │   │   ├── features/                # one folder per domain feature
-│   │   │   │   ├── auth/
-│   │   │   │   ├── intake/
-│   │   │   │   ├── documents/
-│   │   │   │   ├── report/
-│   │   │   │   ├── decision/
-│   │   │   │   └── journey/
-│   │   │   ├── components/              # app-specific components
-│   │   │   │   ├── layout/
-│   │   │   │   └── shared/
-│   │   │   ├── hooks/
-│   │   │   ├── stores/                  # zustand stores
-│   │   │   │   ├── auth-store.ts
-│   │   │   │   └── intake-store.ts
-│   │   │   ├── lib/
-│   │   │   │   ├── query-client.ts
-│   │   │   │   └── env.ts
-│   │   │   └── styles/
-│   │   │       └── globals.css
-│   │   └── tests/
-│   │
-│   └── advisor/
+│   └── web/                              # @viacerta/web — single app, single deploy
 │       ├── package.json
 │       ├── vite.config.ts
 │       ├── tsconfig.json
 │       ├── index.html
 │       ├── tailwind.config.ts
+│       ├── postcss.config.cjs
+│       ├── public/
 │       ├── src/
 │       │   ├── main.tsx
 │       │   ├── App.tsx
-│       │   ├── router.tsx
+│       │   ├── router.tsx                # single router: student/parent + advisor + internal
 │       │   ├── routes/
 │       │   │   ├── auth/
-│       │   │   ├── advisor/
+│       │   │   │   ├── LoginPage.tsx
+│       │   │   │   └── RegisterPage.tsx
+│       │   │   ├── HomePage.tsx          # "/" — role-based landing redirect
+│       │   │   ├── ForbiddenPage.tsx
+│       │   │   ├── NotFoundPage.tsx
+│       │   │   ├── student/
+│       │   │   │   ├── DashboardPage.tsx
+│       │   │   │   ├── IntakeStartPage.tsx
+│       │   │   │   ├── IntakeFormPage.tsx
+│       │   │   │   ├── DocumentsPage.tsx
+│       │   │   │   ├── PendingPage.tsx
+│       │   │   │   ├── ReportPage.tsx
+│       │   │   │   └── DecisionGatePage.tsx
+│       │   │   ├── parent/
+│       │   │   │   └── ParentSummaryPage.tsx
+│       │   │   ├── advisor/              # RoleGate-wrapped in router.tsx
 │       │   │   │   ├── CaseQueuePage.tsx
 │       │   │   │   ├── StudentDetailPage.tsx
 │       │   │   │   ├── AssessmentPage.tsx
-│       │   │   │   ├── GcriRunPage.tsx
+│       │   │   │   ├── GcriPage.tsx
 │       │   │   │   ├── ReportBuilderPage.tsx
 │       │   │   │   └── CalibrationPage.tsx
-│       │   │   └── internal/
+│       │   │   └── internal/             # RoleGate-wrapped in router.tsx
 │       │   │       ├── LeadsPage.tsx
 │       │   │       ├── DocumentVerifyPage.tsx
 │       │   │       ├── DataOpsPage.tsx
-│       │   │       └── OutcomesPage.tsx
-│       │   ├── features/
+│       │   │       ├── OutcomesPage.tsx
+│       │   │       └── UsersPage.tsx
+│       │   ├── features/                 # one folder per domain feature
+│       │   │   ├── auth/
+│       │   │   ├── intake/
+│       │   │   ├── documents/
+│       │   │   ├── report/
+│       │   │   ├── decision/
+│       │   │   └── journey/
 │       │   ├── components/
+│       │   │   ├── layout/               # AppShell, SideNav, TopBar, PageContainer
+│       │   │   └── shared/               # ProtectedRoute, RoleGate
 │       │   ├── hooks/
 │       │   ├── stores/
-│       │   └── lib/
+│       │   │   └── auth-store.ts         # single auth store, AppRole-aware
+│       │   ├── lib/
+│       │   │   ├── query-client.ts
+│       │   │   ├── env.ts
+│       │   │   ├── roles.ts              # role-group constants for RoleGate/SideNav
+│       │   │   └── destination-by-role.ts
+│       │   └── styles/
+│       │       └── globals.css
 │       └── tests/
 │
 └── packages/
@@ -236,22 +220,19 @@ frontend/
     │   │       └── ReportDisclaimer.tsx
     │   └── tests/
     │
-    ├── api-client/                      # @viacerta/api-client
+    ├── api-client/                      # @viacerta/api-client — single entry point
     │   ├── package.json
     │   ├── tsconfig.json
     │   ├── src/
-    │   │   ├── index.ts
-    │   │   ├── portal.ts                # exports portalClient + portal types
-    │   │   ├── advisor.ts               # exports advisorClient + advisor types
+    │   │   ├── index.ts                 # apiAxios, apiClient, authStorage, types
     │   │   ├── axios-instance.ts        # base axios with interceptors
-    │   │   ├── auth-storage.ts          # token persistence
+    │   │   ├── auth-storage.ts          # token persistence (single namespace)
     │   │   ├── refresh-interceptor.ts
     │   │   ├── errors.ts                # ApiError, ValidationError, etc.
     │   │   └── generated/
-    │   │       ├── portal.d.ts          # generated from /openapi.json
-    │   │       └── advisor.d.ts         # generated from /advisor/openapi.json
+    │   │       └── api.d.ts             # merged from /openapi.json + /advisor/openapi.json
     │   └── scripts/
-    │       └── generate.ts              # runs openapi-typescript against backend
+    │       └── generate.ts              # fetches both specs, merges, runs openapi-typescript
     │
     ├── design-tokens/                   # @viacerta/design-tokens
     │   ├── package.json
@@ -260,7 +241,7 @@ frontend/
     │   │   ├── colors.ts                # navy/amber/green palette + flag semantics
     │   │   ├── typography.ts
     │   │   ├── spacing.ts
-    │   │   └── tailwind-preset.ts       # exports Tailwind preset for both apps
+    │   │   └── tailwind-preset.ts       # exports Tailwind preset for apps/web
     │   └── tests/
     │
     └── utils/                           # @viacerta/utils
@@ -270,8 +251,8 @@ frontend/
         │   ├── format.ts                # currency (INR/EUR/USD), date, number
         │   ├── audience.ts              # FORBIDDEN_KEYS for dev-mode lint
         │   ├── flags.ts                 # GCSS flag → color, label, recommendation
-        │   ├── routes.ts                # named routes for both apps
-        │   └── types.ts
+        │   ├── routes.ts                # named routes for apps/web
+        │   └── types.ts                 # AppRole = PortalRole | AdvisorRole, AuthUser
         └── tests/
 ```
 
@@ -281,11 +262,11 @@ frontend/
 
 ### Pattern 1: pages are thin, features are smart
 
-Each route file in `apps/*/src/routes/` is a wrapper. It imports a feature component and does nothing else.
+Each route file in `apps/web/src/routes/` is a wrapper. It imports a feature component and does nothing else.
 
 ```tsx
-// apps/portal/src/routes/student/report/ReportPage.tsx
-import { StudentReport } from "../../../features/report/StudentReport";
+// apps/web/src/routes/student/ReportPage.tsx
+import { StudentReport } from "../../features/report/StudentReport";
 
 export default function ReportPage() {
   return <StudentReport />;
@@ -293,7 +274,7 @@ export default function ReportPage() {
 ```
 
 ```tsx
-// apps/portal/src/features/report/StudentReport.tsx
+// apps/web/src/features/report/StudentReport.tsx
 import { useStudentReport } from "./useStudentReport";
 import { AsyncBoundary, ReportDisclaimer } from "@viacerta/ui";
 import { ReportHeader, GcssSection, GcriSection, InsightsSection,
@@ -328,14 +309,14 @@ export function StudentReport() {
 One hook per resource. Naming: `use<Subject><Verb>`.
 
 ```tsx
-// apps/portal/src/features/report/useStudentReport.ts
+// apps/web/src/features/report/useStudentReport.ts
 import { useQuery } from "@tanstack/react-query";
-import { portalClient } from "@viacerta/api-client";
+import { apiClient } from "@viacerta/api-client";
 
 export function useStudentReport() {
   return useQuery({
     queryKey: ["studentReport", "latest"],
-    queryFn: () => portalClient.GET("/api/v1/portal/students/me/report"),
+    queryFn: () => apiClient.GET("/api/v1/portal/students/me/report"),
     select: (r) => r.data,
     staleTime: 60_000,
   });
@@ -345,15 +326,15 @@ export function useStudentReport() {
 ### Pattern 3: mutations always return a typed Promise + invalidate the right queries
 
 ```tsx
-// apps/advisor/src/features/assessment/useGcssOverride.ts
+// apps/web/src/features/assessment/useGcssOverride.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { advisorClient } from "@viacerta/api-client";
+import { apiClient } from "@viacerta/api-client";
 
 export function useGcssOverride(studentId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: GcssOverrideRequest) =>
-      advisorClient.POST(
+      apiClient.POST(
         "/api/v1/advisor/students/{student_id}/assessment/override",
         { params: { path: { student_id: studentId } }, body },
       ),
@@ -368,7 +349,7 @@ export function useGcssOverride(studentId: string) {
 ### Pattern 4: forms use react-hook-form + zod, never raw useState
 
 ```tsx
-// apps/advisor/src/features/assessment/OverrideDialog.tsx
+// apps/web/src/features/assessment/OverrideDialog.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -409,17 +390,23 @@ export function GcssFlagBadge({ flag }: { flag: GcssFlag }) {
 }
 ```
 
-### Pattern 6: audience separation enforced by import
+### Pattern 6: audience separation enforced by role-gated routes, not imports
+
+`@viacerta/api-client` exports a single merged set of types — `StudentReportResponse` and `AdvisorAssessmentResponse` both live in `@viacerta/api-client` and either can be imported from any feature. The boundary that matters is **which routes a role can reach**, enforced with `<RoleGate>`:
 
 ```tsx
-// ❌ Won't compile in portal app — type doesn't exist
-import type { AdvisorAssessmentResponse } from "@viacerta/api-client";
-
-// ✅ Portal-allowed type
-import type { StudentReportResponse } from "@viacerta/api-client";
+// apps/web/src/router.tsx
+{
+  path: "/students/:studentId/assessment",
+  element: (
+    <RoleGate allow={ADVISOR_ROLES}>
+      <AssessmentPage />
+    </RoleGate>
+  ),
+},
 ```
 
-The `@viacerta/api-client` package has separate entry points (`portal.ts`, `advisor.ts`). Portal `package.json` only depends on the portal entry. There's a Vite alias enforcing this.
+`ADVISOR_ROLES`, `ADMIN_ONLY`, etc. are role-group constants in `apps/web/src/lib/roles.ts`. A STUDENT hitting `/students/:id/assessment` is redirected to `/forbidden` by `<RoleGate>`. See [ADR-007](./ADR-007-single-app-merge.md) for why this replaced the old import-level (build-time) separation, and what that gives up.
 
 ---
 
@@ -428,13 +415,13 @@ The `@viacerta/api-client` package has separate entry points (`portal.ts`, `advi
 1. Initialize pnpm workspace: `pnpm init`, create `pnpm-workspace.yaml`.
 2. Create root `tsconfig.base.json`, `.eslintrc.cjs`, `.prettierrc`.
 3. Create `packages/design-tokens` — colors, spacing, Tailwind preset.
-4. Create `packages/utils` — flags helper, formatters, route names, audience-leak dev guard.
-5. Create `packages/api-client` — base axios + auth storage + refresh interceptor. Add `scripts/generate.ts` (runs against `http://localhost:8000/openapi.json` and `/advisor/openapi.json`).
+4. Create `packages/utils` — flags helper, formatters, route names, `AppRole`/`AuthUser` types.
+5. Create `packages/api-client` — base axios + auth storage + refresh interceptor. Add `scripts/generate.ts` (fetches `http://localhost:8000/openapi.json` and `/advisor/openapi.json`, merges them, runs `openapi-typescript` once).
 6. Create `packages/ui` — primitives first (Button, Input, Card), then feedback (AsyncBoundary), then domain (GcssFlag, ScoreGauge).
-7. Create `apps/portal`: Vite scaffold, Router, Login + Register pages, auth store.
-8. Implement portal student flow page by page (intake → documents → pending → report → decision).
-9. Create `apps/advisor`: same scaffold; implement case queue → student detail → assessment → confirm → GCRI → report builder.
-10. Internal ops pages last.
+7. Create `apps/web`: Vite scaffold, single Router, Login + Register pages, single auth store.
+8. Implement student flow page by page (intake → documents → pending → report → decision), then parent summary.
+9. Implement advisor flow: case queue → student detail → assessment → confirm → GCRI → report builder, each route wrapped in `<RoleGate>`.
+10. Internal ops pages last, also `<RoleGate>`-wrapped.
 11. Run `pnpm -r test` — everything green.
 
 ---
@@ -444,4 +431,4 @@ The `@viacerta/api-client` package has separate entry points (`portal.ts`, `advi
 - If two docs disagree, **this file wins**, but flag the disagreement.
 - If a backend endpoint exists but isn't documented here, generate types and use it.
 - If a backend endpoint doesn't exist for a UI need, **don't invent it** — open a question.
-- Don't build screens that would need advisor-only fields in the portal app. If you find yourself reaching for an "advisor" type in the portal, stop — it's an architecture violation.
+- Adding a new advisor/internal route? Wrap it in `<RoleGate allow={...}>` in `router.tsx` and add it to `SideNav` with the right `allow` group. Forgetting `<RoleGate>` is the one mistake that bypasses audience separation entirely now that it's runtime-only — see [ADR-007](./ADR-007-single-app-merge.md).

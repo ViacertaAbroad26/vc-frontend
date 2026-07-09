@@ -54,14 +54,16 @@ export function LoginForm({ onSubmit, isSubmitting }: {
 
 Backend Pydantic schemas live in `app/schemas/`. Frontend zod schemas mirror the **request bodies**, plus client-side niceties like trimmed strings and required-when-checked rules.
 
+All of these live under `apps/web/src/features/<feature>/schemas.ts` — one app, one `src/features/` tree (see `docs/01-project-structure.md`).
+
 | Backend (Pydantic) | Frontend (zod) | Lives in |
 |---|---|---|
-| `RegisterRequest` | `RegisterSchema` | `apps/portal/src/features/auth/schemas.ts` |
+| `RegisterRequest` | `RegisterSchema` | `apps/web/src/features/auth/schemas.ts` |
 | `LoginRequest` | `LoginSchema` | same |
-| `OverrideRequest` (advisor) | `OverrideSchema` | `apps/advisor/src/features/assessment/schemas.ts` |
-| `GcriOverrideRequest` | `GcriOverrideSchema` | `apps/advisor/src/features/gcri/schemas.ts` |
-| `InsightRequest` | `InsightSchema` | `apps/advisor/src/features/report-builder/schemas.ts` |
-| `DecisionRequest` | `DecisionSchema` | `apps/portal/src/features/decision/schemas.ts` |
+| `OverrideRequest` (advisor) | `OverrideSchema` | `apps/web/src/features/assessment/schemas.ts` |
+| `GcriOverrideRequest` | `GcriOverrideSchema` | `apps/web/src/features/gcri/schemas.ts` |
+| `InsightRequest` | `InsightSchema` | `apps/web/src/features/report-builder/schemas.ts` |
+| `DecisionRequest` | `DecisionSchema` | `apps/web/src/features/decision/schemas.ts` |
 
 When backend rules change (e.g., evidence min length goes from 10 to 15), update the zod schema. The server still enforces; the client's job is fast feedback.
 
@@ -70,7 +72,7 @@ When backend rules change (e.g., evidence min length goes from 10 to 15), update
 ### Register form
 
 ```tsx
-// apps/portal/src/features/auth/schemas.ts
+// apps/web/src/features/auth/schemas.ts
 import { z } from "zod";
 
 export const RegisterSchema = z.object({
@@ -94,7 +96,7 @@ export type RegisterValues = z.infer<typeof RegisterSchema>;
 ### Override dialog (advisor)
 
 ```tsx
-// apps/advisor/src/features/assessment/schemas.ts
+// apps/web/src/features/assessment/schemas.ts
 import { z } from "zod";
 
 export const OverrideSchema = z.object({
@@ -107,7 +109,7 @@ export type OverrideValues = z.infer<typeof OverrideSchema>;
 ```
 
 ```tsx
-// apps/advisor/src/features/assessment/OverrideDialog.tsx
+// apps/web/src/features/assessment/OverrideDialog.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogFooter,
@@ -206,7 +208,7 @@ export function OverrideDialog(p: Props) {
 The backend requires advisor insights to be ≤ 3 sentences. Mirror it client-side for instant feedback:
 
 ```ts
-// apps/advisor/src/features/report-builder/schemas.ts
+// apps/web/src/features/report-builder/schemas.ts
 import { z } from "zod";
 
 function countSentences(text: string): number {
@@ -242,9 +244,9 @@ The intake form is variable-shape (the backend ships the form definition per per
 ### Building the schema dynamically
 
 ```ts
-// apps/portal/src/features/intake/build-schema.ts
+// apps/web/src/features/intake/build-schema.ts
 import { z, type ZodTypeAny } from "zod";
-import type { IntakeFormQuestion } from "@viacerta/api-client/portal";
+import type { IntakeFormQuestion } from "@viacerta/api-client";
 
 export function buildIntakeSchema(questions: IntakeFormQuestion[]): z.ZodObject<Record<string, ZodTypeAny>> {
   const shape: Record<string, ZodTypeAny> = {};
@@ -286,11 +288,11 @@ export function buildIntakeSchema(questions: IntakeFormQuestion[]): z.ZodObject<
 ### Top-level IntakeForm
 
 ```tsx
-// apps/portal/src/features/intake/IntakeForm.tsx
+// apps/web/src/features/intake/IntakeForm.tsx
 import { useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { IntakeForm as TIntakeForm } from "@viacerta/api-client/portal";
+import type { IntakeForm as TIntakeForm } from "@viacerta/api-client";
 
 import { Card, CardBody, Button, AsyncBoundary } from "@viacerta/ui";
 import { SaveResumeIndicator } from "./SaveResumeIndicator";
@@ -374,9 +376,9 @@ export function IntakeForm({ form, submissionId, initialAnswers }: Props) {
 ### IntakeQuestion — type-dispatched
 
 ```tsx
-// apps/portal/src/features/intake/IntakeQuestion.tsx
+// apps/web/src/features/intake/IntakeQuestion.tsx
 import { useFormContext } from "react-hook-form";
-import type { IntakeFormQuestion } from "@viacerta/api-client/portal";
+import type { IntakeFormQuestion } from "@viacerta/api-client";
 
 import { Input, Textarea, Label, ErrorText, RadioGroup, Checkbox } from "@viacerta/ui";
 
@@ -480,7 +482,7 @@ export function IntakeQuestion({ question }: { question: IntakeFormQuestion }) {
 ### Save-and-resume indicator
 
 ```tsx
-// apps/portal/src/features/intake/SaveResumeIndicator.tsx
+// apps/web/src/features/intake/SaveResumeIndicator.tsx
 import { useIntakeStore } from "@/stores/intake-store";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, Check, AlertCircle } from "lucide-react";

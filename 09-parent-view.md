@@ -4,12 +4,30 @@
 
 ## Mounting
 
-The parent surface lives **inside `apps/portal`** under `/parent/*` because:
+The parent surface lives **inside the single `apps/web` app** under
+`/parent/*` (route components in `apps/web/src/routes/parent/`, feature code
+in `apps/web/src/features/parent/` — see
+[ADR-007](./ADR-007-single-app-merge.md) and `docs/01-project-structure.md`):
 
-1. Parents and students share the same login system, the same backend portal API, the same audience disclaimer footer.
-2. Building it as its own app would force a third bundle with little payoff.
+1. Parents and students share the same login system, the same backend portal
+   API, the same auth store, and the same audience disclaimer footer.
+2. There's no separate parent or "portal" bundle/deploy — `apps/web` is the
+   one app, one build, one deploy that serves the student/parent surface
+   alongside the advisor/internal surface (role-gated at runtime).
 
-Audience separation is still enforced **at the API + response-shape level** (advisor-only fields never appear in the parent endpoints). The shared portal bundle imports from `@viacerta/api-client/portal` — same import path as the student surface, but the parent endpoints return a parent-shaped response.
+Audience separation for the parent view is enforced **at the API +
+response-shape level**: advisor-only fields never appear in the parent
+endpoints' response payload, so the parent screens simply have nothing to
+render — the types for those fields don't even exist on the parent response
+shape. This mirrors the framing in `docs/00-context.md`'s "Trust posture"
+section: the frontend doesn't need to hide anything because the backend never
+sends it, and a PARENT JWT couldn't fetch advisor-only data even if the UI
+asked for it. Parent routes are behind `<ProtectedRoute>` (must be logged in
+as PARENT) but are not `<RoleGate>`-gated the way advisor/internal routes
+are — `<RoleGate>` exists to keep STUDENT/PARENT users out of advisor
+screens, which isn't a concern here. The shared app imports everything from
+`@viacerta/api-client` — same import path as the student surface — and the
+parent endpoints simply return a parent-shaped response.
 
 ## Routes
 
@@ -35,7 +53,7 @@ if (user.role === 'PARENT') {
 ## Schema (consumed)
 
 ```ts
-// from @viacerta/api-client/portal types — generated, parent-flavoured response
+// from @viacerta/api-client generated types — parent-flavoured response
 export type ParentStudentSummary = {
   studentId: string
   studentName: string
@@ -54,7 +72,7 @@ export type ParentStudentSummary = {
 ## Screen — ParentStudentPage
 
 ```tsx
-// apps/portal/src/routes/ParentStudentPage.tsx
+// apps/web/src/routes/parent/ParentSummaryPage.tsx
 import { useParams } from 'react-router-dom'
 import { Card, CardBody, AsyncBoundary } from '@viacerta/ui'
 import { GcssFlagBadge, ReportDisclaimer } from '@viacerta/ui/viacerta'
@@ -181,7 +199,7 @@ If parents want details, the advisor walks them through during Session 2. This i
 Frontend bits:
 
 ```tsx
-// apps/portal/src/routes/ParentLandingPage.tsx
+// apps/web/src/routes/parent/ParentLandingPage.tsx
 import { Card, CardBody, Button, Input } from '@viacerta/ui'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -271,7 +289,7 @@ export function ParentLandingPage() {
 ## Audience-leak test (lives in tests, but referenced here)
 
 ```ts
-// apps/portal/src/__tests__/audience-separation.test.tsx
+// apps/web/src/__tests__/audience-separation.test.tsx
 describe('parent view', () => {
   it('never displays advisor-only fields', async () => {
     server.use(

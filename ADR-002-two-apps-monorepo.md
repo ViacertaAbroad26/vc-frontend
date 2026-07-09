@@ -1,8 +1,14 @@
 # ADR-002 — Two Apps in a Monorepo
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-007](./ADR-007-single-app-merge.md)
 **Date**: 2026-06-04
 **Deciders**: Gautam (founder / eng lead)
+
+> **2026-06-11 update**: This ADR's decision was reversed — see ADR-007. The
+> rationale below (audience separation enforced at the build level) is kept
+> for historical context, but the codebase now ships a single `apps/web`.
+> Audience separation is now enforced via role-based routing (`RoleGate`,
+> `ProtectedRoute`) rather than separate bundles.
 
 ## Context
 

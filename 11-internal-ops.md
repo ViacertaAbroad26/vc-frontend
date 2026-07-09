@@ -1,29 +1,41 @@
 # 11 — Internal Ops Screens
 
-> `apps/advisor` (same app, role-gated routes) for COORDINATOR, APPS_OPS, VISA_OPS, CAREER_SERVICES, DATA_OPS, ADMIN.
+> Single app (`apps/web`), role-gated routes. See [ADR-007](./ADR-007-single-app-merge.md)
+> for the full rationale — this doc covers the coordinator/ops/career-services/admin
+> screens that live under `apps/web/src/routes/internal/`.
 
-## Route map (additions to advisor app)
+> Role-gated routes within `apps/web` for COORDINATOR, APPS_OPS, VISA_OPS, CAREER_SERVICES, DATA_OPS, SENIOR_ADVISOR, ADMIN.
+
+## Route map
+
+These routes are defined in `apps/web/src/router.tsx` alongside the
+student/parent and advisor routes (`docs/10-advisor-console.md`). Each is
+wrapped in `<RoleGate allow={...}>` using a role-group constant from
+`apps/web/src/lib/roles.ts`:
 
 ```
-/ops/leads                       COORDINATOR, ADMIN — unassigned leads + assignment
-/ops/documents                   APPS_OPS, VISA_OPS, ADMIN — document verification queue
-/ops/data                        DATA_OPS, ADMIN — matrix versions + freshness + downgrades
-/ops/outcomes                    CAREER_SERVICES, ADMIN — outcome capture
-/ops/users                       ADMIN — user + role management
+/ops/leads                       RoleGate allow={COORD_ROLES}     — COORDINATOR, ADMIN — unassigned leads + assignment
+/ops/documents                   RoleGate allow={DOCS_OPS_ROLES}  — APPS_OPS, VISA_OPS, ADMIN — document verification queue
+/ops/data                        RoleGate allow={DATA_OPS_ROLES}  — DATA_OPS, SENIOR_ADVISOR, ADMIN — matrix versions + freshness + downgrades
+/ops/outcomes                    RoleGate allow={CAREER_ROLES}    — CAREER_SERVICES, ADMIN — outcome capture
+/ops/users                       RoleGate allow={ADMIN_ONLY}      — ADMIN — user + role management
 ```
 
-`RoleGate` (defined in `docs/05-auth-and-routing.md`) wraps every `/ops/*` route. A user without the right role gets the `403` screen, not a redirect — so the link never accidentally renders.
+`<RoleGate>` (`apps/web/src/components/shared/RoleGate.tsx`, see
+`docs/05-auth-and-routing.md`) wraps every `/ops/*` route. A user without
+the right role is redirected to `/forbidden` (`apps/web/src/routes/ForbiddenPage.tsx`)
+— so the link never resolves for the wrong role, and `<SideNav>` doesn't
+render it for them either.
 
 ## Screen — Lead intake queue (`/ops/leads`)
 
 Coordinator's main view: leads coming in, advisor capacity, drag-to-assign.
 
 ```tsx
-// apps/advisor/src/routes/ops/LeadsPage.tsx
+// apps/web/src/routes/internal/LeadsPage.tsx
 import { Card, CardBody, Button, AsyncBoundary } from '@viacerta/ui'
-import { useLeads } from '@/hooks/use-leads'
-import { useAdvisors } from '@/hooks/use-advisors'
-import { useAssignAdvisor } from '@/hooks/use-assign-advisor'
+import { useLeads, useAdvisors } from '@/features/leads/useLeads'
+import { useAssignAdvisor } from '@/features/leads/useAssignAdvisor'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
 
@@ -124,16 +136,16 @@ function Inner() {
 Operator queue: pending documents, side-by-side preview, evidence-level + verify/reject actions.
 
 ```tsx
-// apps/advisor/src/routes/ops/DocumentVerificationPage.tsx
+// apps/web/src/routes/internal/DocumentVerifyPage.tsx
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card, CardBody, Button, AsyncBoundary } from '@viacerta/ui'
 import { EvidenceLevelBadge } from '@viacerta/ui/viacerta'
-import { usePendingDocuments } from '@/hooks/use-pending-documents'
-import { useVerifyDocument } from '@/hooks/use-verify-document'
-import { useRejectDocument } from '@/hooks/use-reject-document'
+import { usePendingDocuments } from '@/features/document-verify/usePendingDocuments'
+import { useVerifyDocument } from '@/features/document-verify/useVerifyDocument'
+import { useRejectDocument } from '@/features/document-verify/useRejectDocument'
 import { format } from 'date-fns'
 
 const RejectSchema = z.object({
@@ -142,7 +154,7 @@ const RejectSchema = z.object({
 
 const EVIDENCE_LEVELS = ['L2', 'L3', 'L4', 'L5'] as const
 
-export function DocumentVerificationPage() {
+export function DocumentVerifyPage() {
   return (
     <AsyncBoundary>
       <Inner />
@@ -282,14 +294,14 @@ Two surfaces:
 2. **Version management**: publish + activate matrix versions, hard-coded downgrades with evidence
 
 ```tsx
-// apps/advisor/src/routes/ops/DataOpsPage.tsx
+// apps/web/src/routes/internal/DataOpsPage.tsx
 import { Card, CardBody, Button, AsyncBoundary } from '@viacerta/ui'
-import { useMatrixVersions } from '@/hooks/use-matrix-versions'
-import { useMatrixFreshness } from '@/hooks/use-matrix-freshness'
-import { useActivateMatrix } from '@/hooks/use-activate-matrix'
+import { useMatrixVersions } from '@/features/data-ops/useMatrixVersions'
+import { useMatrixFreshness } from '@/features/data-ops/useMatrixFreshness'
+import { useActivateMatrix } from '@/features/data-ops/useActivateMatrix'
 import { format, differenceInDays } from 'date-fns'
 import { useState } from 'react'
-import { DowngradeDialog } from '@/features/data-ops/DowngradeDialog'
+import { HardcodedDowngradeDialog as DowngradeDialog } from '@/features/data-ops/HardcodedDowngradeDialog'
 
 export function DataOpsPage() {
   return (
@@ -417,19 +429,19 @@ function Inner() {
 }
 ```
 
-`DowngradeDialog` is RHF + zod with `factor` select, `newRawValue` number, `evidenceNote` (min 10 chars). POST `/advisor/ops/data/matrix/downgrade`.
+`HardcodedDowngradeDialog` (`apps/web/src/features/data-ops/HardcodedDowngradeDialog.tsx`) is RHF + zod with `factor` select, `newRawValue` number, `evidenceNote` (min 10 chars). POST `/advisor/ops/data/matrix/downgrade`.
 
 ## Screen — Outcome capture (`/ops/outcomes`)
 
 Career Services / Admin records Year-1 and Year-3 outcomes for past students. Feeds the calibration loop (`docs/14-development-roadmap.md` phase 3).
 
 ```tsx
-// apps/advisor/src/routes/ops/OutcomesPage.tsx
+// apps/web/src/routes/internal/OutcomesPage.tsx
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card, CardBody, Button, Input, AsyncBoundary } from '@viacerta/ui'
-import { useOutcomeBacklog, useRecordOutcome } from '@/hooks/use-outcomes'
+import { useOutcomeBacklog, useRecordOutcome } from '@/features/outcomes/useOutcomes'
 import { useState } from 'react'
 
 const OutcomeSchema = z.object({
@@ -541,19 +553,35 @@ function Inner() {
 }
 ```
 
+### Outcome data quality dashboard (Phase 3 #2 — implemented)
+
+`apps/web/src/routes/internal/OutcomesPage.tsx` currently renders `OutcomeCoverageView`
+(`apps/web/src/features/outcomes/OutcomeCoverageView.tsx`), reading
+`GET /api/v1/internal/outcomes/coverage` via `useOutcomeCoverage` — a per-cohort table for
+Career Services showing, for each `targetIntake` cohort (students with no `targetIntake` are
+grouped under `"Unspecified"`): student count, CONFIRMED-assessment count, and Year-1/Year-3
+captured-outcome counts + coverage percentages, plus an overall summary line. Gated to
+`CAREER_ROLES` (`CAREER_SERVICES`, `ADMIN`) — same role group as the outcome-capture form above.
+See `docs/12-visualization.md` and backend `docs/14-development-roadmap.md` Phase 3 interim
+status for the full picture; the capture-form spec above remains the plan for `/ops/outcomes`'
+write-side UI and is not yet wired up alongside the coverage table.
+
 ## Screen — User management (`/ops/users`, ADMIN only)
 
 ```tsx
-// apps/advisor/src/routes/ops/UsersPage.tsx
+// apps/web/src/routes/internal/UsersPage.tsx
 import { Card, CardBody, Button, Input, AsyncBoundary } from '@viacerta/ui'
-import { useUsers, useChangeRole, useDeactivateUser } from '@/hooks/use-users'
+import type { AppRole } from '@viacerta/utils'
+import { useUsers, useChangeRole, useDeactivateUser } from '@/features/users/useUsers'
 import { useState } from 'react'
 
-const ROLES = [
+// AppRole = "STUDENT" | "PARENT" | "ADVISOR" | "SENIOR_ADVISOR" | "COORDINATOR"
+//         | "APPS_OPS" | "VISA_OPS" | "CAREER_SERVICES" | "DATA_OPS" | "ADMIN"
+const ROLES: readonly AppRole[] = [
   'STUDENT', 'PARENT', 'ADVISOR', 'SENIOR_ADVISOR',
   'COORDINATOR', 'APPS_OPS', 'VISA_OPS', 'CAREER_SERVICES',
   'DATA_OPS', 'ADMIN',
-] as const
+]
 
 export function UsersPage() {
   return (
@@ -639,20 +667,26 @@ function Inner() {
 
 ## Hooks summary
 
-| Hook | Endpoint | Role |
-|---|---|---|
-| `useLeads()` | GET `/advisor/ops/leads` | COORDINATOR, ADMIN |
-| `useAssignAdvisor()` | POST `/advisor/ops/leads/{id}/assign` | COORDINATOR, ADMIN |
-| `useAdvisors()` | GET `/advisor/ops/advisors` | COORDINATOR, ADMIN |
-| `usePendingDocuments()` | GET `/advisor/ops/documents/pending` | APPS_OPS, VISA_OPS, ADMIN |
-| `useVerifyDocument()` | POST `/advisor/ops/documents/{id}/verify` | same |
-| `useRejectDocument()` | POST `/advisor/ops/documents/{id}/reject` | same — evidence required |
-| `useMatrixVersions()` | GET `/advisor/ops/data/matrix/versions` | DATA_OPS, ADMIN |
-| `useMatrixFreshness()` | GET `/advisor/ops/data/matrix/freshness` | DATA_OPS, ADMIN |
-| `useActivateMatrix()` | POST `/advisor/ops/data/matrix/{id}/activate` | DATA_OPS, ADMIN |
-| `useDowngradeMatrix()` | POST `/advisor/ops/data/matrix/downgrade` | SENIOR_ADVISOR, DATA_OPS — evidence required |
-| `useOutcomeBacklog()` | GET `/advisor/ops/outcomes/backlog` | CAREER_SERVICES, ADMIN |
-| `useRecordOutcome()` | POST `/advisor/ops/outcomes` | CAREER_SERVICES, ADMIN |
-| `useUsers()` | GET `/advisor/ops/users` | ADMIN |
-| `useChangeRole()` | POST `/advisor/ops/users/{id}/role` | ADMIN |
-| `useDeactivateUser()` | POST `/advisor/ops/users/{id}/deactivate` | ADMIN |
+All hooks call `apiClient` from `@viacerta/api-client` and live alongside
+their feature components under `apps/web/src/features/`. Endpoint paths
+below are unchanged backend routes (`/api/v1/advisor/ops/...`). The "Role
+group" column is the `<RoleGate allow={...}>` constant from
+`apps/web/src/lib/roles.ts` that gates the corresponding `/ops/*` route.
+
+| Hook | Feature folder | Endpoint | Role group |
+|---|---|---|---|
+| `useLeads()` | `features/leads` | GET `/advisor/ops/leads` | `COORD_ROLES` (COORDINATOR, ADMIN) |
+| `useAssignAdvisor()` | `features/leads` | POST `/advisor/ops/leads/{id}/assign` | `COORD_ROLES` (COORDINATOR, ADMIN) |
+| `useAdvisors()` | `features/leads` | GET `/advisor/ops/advisors` | `COORD_ROLES` (COORDINATOR, ADMIN) |
+| `usePendingDocuments()` | `features/document-verify` | GET `/advisor/ops/documents/pending` | `DOCS_OPS_ROLES` (APPS_OPS, VISA_OPS, ADMIN) |
+| `useVerifyDocument()` | `features/document-verify` | POST `/advisor/ops/documents/{id}/verify` | same |
+| `useRejectDocument()` | `features/document-verify` | POST `/advisor/ops/documents/{id}/reject` | same — evidence required |
+| `useMatrixVersions()` | `features/data-ops` | GET `/advisor/ops/data/matrix/versions` | `DATA_OPS_ROLES` (DATA_OPS, SENIOR_ADVISOR, ADMIN) |
+| `useMatrixFreshness()` | `features/data-ops` | GET `/advisor/ops/data/matrix/freshness` | `DATA_OPS_ROLES` |
+| `useActivateMatrix()` | `features/data-ops` | POST `/advisor/ops/data/matrix/{id}/activate` | `DATA_OPS_ROLES` |
+| `useDowngradeMatrix()` | `features/data-ops` | POST `/advisor/ops/data/matrix/downgrade` | `DATA_OPS_ROLES` — evidence required |
+| `useOutcomeBacklog()` | `features/outcomes` | GET `/advisor/ops/outcomes/backlog` | `CAREER_ROLES` (CAREER_SERVICES, ADMIN) |
+| `useRecordOutcome()` | `features/outcomes` | POST `/advisor/ops/outcomes` | `CAREER_ROLES` |
+| `useUsers()` | `features/users` | GET `/advisor/ops/users` | `ADMIN_ONLY` |
+| `useChangeRole()` | `features/users` | POST `/advisor/ops/users/{id}/role` | `ADMIN_ONLY` |
+| `useDeactivateUser()` | `features/users` | POST `/advisor/ops/users/{id}/deactivate` | `ADMIN_ONLY` |

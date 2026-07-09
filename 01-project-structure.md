@@ -1,6 +1,9 @@
 # 01 — Project Structure
 
-> pnpm monorepo. Two apps + four packages. Build the exact tree below.
+> See [ADR-007](./ADR-007-single-app-merge.md) for why this is one app
+> (`apps/web`), not two. The tree below is the actual, current layout.
+
+> pnpm monorepo. One app (`apps/web`) + four packages.
 
 ## Root layout
 
@@ -20,8 +23,7 @@ frontend/
 ├── adrs/
 │
 ├── apps/
-│   ├── portal/
-│   └── advisor/
+│   └── web/
 │
 └── packages/
     ├── ui/
@@ -51,7 +53,7 @@ packages:
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:watch": "pnpm -r --parallel run test:watch",
-    "e2e": "pnpm --filter @viacerta/portal-e2e run e2e && pnpm --filter @viacerta/advisor-e2e run e2e",
+    "e2e": "pnpm --filter @viacerta/web-e2e run e2e",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
     "format": "prettier --write .",
@@ -61,12 +63,15 @@ packages:
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.2.0",
     "typescript": "^5.4.0"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@10.12.4",
   "engines": {
     "node": ">=20"
   }
@@ -100,12 +105,12 @@ packages:
 }
 ```
 
-## Apps
+## App
 
-### `apps/portal/`
+### `apps/web/` — `@viacerta/web`
 
 ```
-apps/portal/
+apps/web/
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
@@ -119,21 +124,20 @@ apps/portal/
 └── src/
     ├── main.tsx                 # ReactDOM.createRoot
     ├── App.tsx                  # providers (QueryClient, Router, ThemeProvider)
-    ├── router.tsx               # createBrowserRouter
+    ├── router.tsx               # single createBrowserRouter — student/parent + advisor + internal
     ├── lib/
     │   ├── env.ts               # zod-validated import.meta.env
-    │   └── query-client.ts      # TanStack QueryClient
+    │   ├── query-client.ts      # TanStack QueryClient
+    │   ├── roles.ts             # role-group constants for RoleGate/SideNav
+    │   └── destination-by-role.ts
     ├── stores/
-    │   ├── auth-store.ts        # Zustand: user, tokens
+    │   ├── auth-store.ts        # Zustand: user, tokens (single AppRole-aware store)
     │   └── intake-store.ts      # Zustand: partial answers cache
-    ├── hooks/
-    │   ├── use-auth.ts
-    │   └── use-redirect-by-role.ts
     ├── components/
     │   ├── layout/
     │   │   ├── AppShell.tsx
     │   │   ├── TopBar.tsx
-    │   │   ├── SideNav.tsx
+    │   │   ├── SideNav.tsx      # filters nav items by role via @/lib/roles
     │   │   └── PageContainer.tsx
     │   └── shared/
     │       ├── ProtectedRoute.tsx
@@ -179,14 +183,69 @@ apps/portal/
     │   ├── decision/
     │   │   ├── DecisionGate.tsx
     │   │   └── useRecordDecision.ts
-    │   └── parent/
-    │       ├── ParentLinkRequest.tsx
-    │       ├── ParentSummaryView.tsx
-    │       └── useParentSummary.ts
+    │   ├── parent/
+    │   │   ├── ParentLinkRequest.tsx
+    │   │   ├── ParentSummaryView.tsx
+    │   │   └── useParentSummary.ts
+    │   ├── cases/
+    │   │   ├── CaseQueue.tsx
+    │   │   ├── CaseFilters.tsx
+    │   │   ├── CaseRow.tsx
+    │   │   └── useCases.ts
+    │   ├── student-detail/
+    │   │   ├── StudentDetail.tsx
+    │   │   ├── IntakeAnswersPanel.tsx
+    │   │   ├── DocumentsPanel.tsx
+    │   │   ├── AuditTrailPanel.tsx
+    │   │   └── useStudentDetail.ts
+    │   ├── assessment/
+    │   │   ├── AssessmentView.tsx
+    │   │   ├── DimensionPanel.tsx
+    │   │   ├── SubScoreRow.tsx
+    │   │   ├── OverrideDialog.tsx
+    │   │   ├── ConfirmDialog.tsx
+    │   │   ├── useAssessment.ts
+    │   │   ├── useGcssOverride.ts
+    │   │   └── useConfirmAssessment.ts
+    │   ├── gcri/
+    │   │   ├── GcriRunDialog.tsx
+    │   │   ├── GcriResultsView.tsx
+    │   │   ├── GcriCountryCard.tsx
+    │   │   ├── GcriOverrideDialog.tsx
+    │   │   ├── useTriggerGcri.ts
+    │   │   ├── useGcriResults.ts
+    │   │   └── useGcriOverride.ts
+    │   ├── report-builder/
+    │   │   ├── ReportBuilder.tsx
+    │   │   ├── InsightEditor.tsx
+    │   │   ├── SectionPreview.tsx
+    │   │   ├── PublishButton.tsx
+    │   │   ├── useBuildReport.ts
+    │   │   ├── useAddInsight.ts
+    │   │   └── usePublishReport.ts
+    │   ├── calibration/
+    │   │   └── CalibrationCases.tsx
+    │   ├── leads/
+    │   │   ├── LeadsList.tsx
+    │   │   └── AssignAdvisorDialog.tsx
+    │   ├── document-verify/
+    │   │   ├── DocumentVerifyList.tsx
+    │   │   └── VerifyDialog.tsx
+    │   ├── data-ops/
+    │   │   ├── RubricVersionList.tsx
+    │   │   ├── MatrixVersionList.tsx
+    │   │   ├── FreshnessDashboard.tsx
+    │   │   └── HardcodedDowngradeDialog.tsx
+    │   └── outcomes/
+    │       ├── OutcomeCaptureForm.tsx
+    │       └── OutcomesList.tsx
     ├── routes/                  # thin route components
     │   ├── auth/
     │   │   ├── LoginPage.tsx
     │   │   └── RegisterPage.tsx
+    │   ├── HomePage.tsx         # "/" — role-based landing redirect
+    │   ├── ForbiddenPage.tsx
+    │   ├── NotFoundPage.tsx
     │   ├── student/
     │   │   ├── DashboardPage.tsx
     │   │   ├── IntakeStartPage.tsx
@@ -198,92 +257,23 @@ apps/portal/
     │   │   └── JourneyPage.tsx
     │   ├── parent/
     │   │   └── ParentSummaryPage.tsx
-    │   └── NotFoundPage.tsx
+    │   ├── advisor/             # RoleGate-wrapped in router.tsx
+    │   │   ├── CaseQueuePage.tsx
+    │   │   ├── StudentDetailPage.tsx
+    │   │   ├── AssessmentPage.tsx
+    │   │   ├── GcriPage.tsx
+    │   │   ├── ReportBuilderPage.tsx
+    │   │   └── CalibrationPage.tsx
+    │   └── internal/            # RoleGate-wrapped in router.tsx
+    │       ├── LeadsPage.tsx
+    │       ├── DocumentVerifyPage.tsx
+    │       ├── DataOpsPage.tsx
+    │       ├── UsersPage.tsx
+    │       └── OutcomesPage.tsx
     ├── styles/
     │   └── globals.css          # Tailwind layers + custom CSS variables
     └── test/
-        ├── setup.ts
-        ├── msw-handlers.ts      # MSW handlers for portal endpoints
-        └── fixtures/
-            └── aditya.ts        # Aditya Basu fixture matching the live scorecard
-```
-
-### `apps/advisor/`
-
-Same structure, different features:
-
-```
-apps/advisor/src/
-├── features/
-│   ├── auth/
-│   ├── cases/
-│   │   ├── CaseQueue.tsx
-│   │   ├── CaseFilters.tsx
-│   │   ├── CaseRow.tsx
-│   │   └── useCases.ts
-│   ├── student-detail/
-│   │   ├── StudentDetail.tsx
-│   │   ├── IntakeAnswersPanel.tsx
-│   │   ├── DocumentsPanel.tsx
-│   │   ├── AuditTrailPanel.tsx
-│   │   └── useStudentDetail.ts
-│   ├── assessment/
-│   │   ├── AssessmentView.tsx
-│   │   ├── DimensionPanel.tsx
-│   │   ├── SubScoreRow.tsx
-│   │   ├── OverrideDialog.tsx
-│   │   ├── ConfirmDialog.tsx
-│   │   ├── useAssessment.ts
-│   │   ├── useGcssOverride.ts
-│   │   └── useConfirmAssessment.ts
-│   ├── gcri/
-│   │   ├── GcriRunDialog.tsx
-│   │   ├── GcriResultsView.tsx
-│   │   ├── GcriCountryCard.tsx
-│   │   ├── GcriOverrideDialog.tsx
-│   │   ├── useTriggerGcri.ts
-│   │   ├── useGcriResults.ts
-│   │   └── useGcriOverride.ts
-│   ├── report-builder/
-│   │   ├── ReportBuilder.tsx
-│   │   ├── InsightEditor.tsx
-│   │   ├── SectionPreview.tsx
-│   │   ├── PublishButton.tsx
-│   │   ├── useBuildReport.ts
-│   │   ├── useAddInsight.ts
-│   │   └── usePublishReport.ts
-│   ├── calibration/
-│   │   └── CalibrationCases.tsx
-│   ├── leads/
-│   │   ├── LeadsList.tsx
-│   │   └── AssignAdvisorDialog.tsx
-│   ├── document-verify/
-│   │   ├── DocumentVerifyList.tsx
-│   │   └── VerifyDialog.tsx
-│   ├── data-ops/
-│   │   ├── RubricVersionList.tsx
-│   │   ├── MatrixVersionList.tsx
-│   │   ├── FreshnessDashboard.tsx
-│   │   └── HardcodedDowngradeDialog.tsx
-│   └── outcomes/
-│       ├── OutcomeCaptureForm.tsx
-│       └── OutcomesList.tsx
-├── routes/
-│   ├── auth/
-│   ├── advisor/
-│   │   ├── CaseQueuePage.tsx
-│   │   ├── StudentDetailPage.tsx
-│   │   ├── AssessmentPage.tsx
-│   │   ├── GcriPage.tsx
-│   │   ├── ReportBuilderPage.tsx
-│   │   └── CalibrationPage.tsx
-│   ├── internal/
-│   │   ├── LeadsPage.tsx
-│   │   ├── DocumentVerifyPage.tsx
-│   │   ├── DataOpsPage.tsx
-│   │   ├── UsersPage.tsx
-│   │   └── OutcomesPage.tsx
-│   └── NotFoundPage.tsx
+        └── setup.ts
 ```
 
 ## Packages
@@ -296,6 +286,8 @@ packages/ui/
 ├── tsconfig.json
 ├── src/
 │   ├── index.ts                  # barrel
+│   ├── lib/
+│   │   └── cn.ts                 # clsx + tailwind-merge helper
 │   ├── primitives/
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
@@ -308,6 +300,8 @@ packages/ui/
 │   │   ├── Dialog.tsx
 │   │   ├── Drawer.tsx
 │   │   ├── Toast.tsx
+│   │   ├── Toaster.tsx
+│   │   ├── use-toast.ts
 │   │   ├── Tabs.tsx
 │   │   ├── Accordion.tsx
 │   │   ├── Table.tsx
@@ -324,7 +318,7 @@ packages/ui/
 │   │   ├── Section.tsx
 │   │   ├── Stack.tsx
 │   │   └── Divider.tsx
-│   └── viacerta/                 # domain components shared across apps
+│   └── viacerta/                 # domain components shared across surfaces
 │       ├── GcssFlagBadge.tsx
 │       ├── RiskBandPill.tsx
 │       ├── ScoreGauge.tsx
@@ -342,39 +336,33 @@ packages/api-client/
 ├── package.json
 ├── tsconfig.json
 ├── src/
-│   ├── portal.ts                 # exports portalClient + portal types ONLY
-│   ├── advisor.ts                # exports advisorClient + advisor types
+│   ├── index.ts                  # apiAxios, apiClient, authStorage, types — single entry point
 │   ├── axios-instance.ts         # shared axios factory with interceptors
-│   ├── auth-storage.ts           # token persistence (localStorage)
+│   ├── auth-storage.ts           # token persistence (single namespace: viacerta:access/refresh)
 │   ├── refresh-interceptor.ts    # auto-refresh on 401
 │   ├── errors.ts                 # ApiError, ValidationError parser
 │   └── generated/
-│       ├── portal.d.ts           # from /openapi.json — DO NOT EDIT
-│       └── advisor.d.ts          # from /advisor/openapi.json — DO NOT EDIT
+│       └── api.d.ts              # merged from /openapi.json + /advisor/openapi.json — DO NOT EDIT
 └── scripts/
-    └── generate.ts               # runs openapi-typescript against backend
+    └── generate.ts               # fetches both specs, merges paths/components.schemas, runs openapi-typescript once
 ```
 
-**Package.json `exports` enforces audience separation**:
+`package.json` `exports`:
 
 ```json
 {
   "name": "@viacerta/api-client",
   "exports": {
-    "./portal": {
-      "types": "./src/portal.ts",
-      "default": "./src/portal.ts"
-    },
-    "./advisor": {
-      "types": "./src/advisor.ts",
-      "default": "./src/advisor.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./errors": "./src/errors.ts"
   }
 }
 ```
 
-Portal app imports only from `@viacerta/api-client/portal`. Advisor app from `@viacerta/api-client/advisor`. ESLint rule prevents portal from importing `/advisor`.
+`apps/web` imports everything — `apiClient`, `apiAxios`, `authStorage`, and all generated types — from `@viacerta/api-client`. There is no audience split at the package-export level; `<RoleGate>` (see `docs/05`) is the boundary now. See [ADR-007](./ADR-007-single-app-merge.md) for the schema-name-collision sharp edge in `scripts/generate.ts`'s spread-merge of the two specs.
 
 ### `packages/design-tokens/` — `@viacerta/design-tokens`
 
@@ -388,7 +376,7 @@ packages/design-tokens/
 │   ├── spacing.ts                # 4px scale
 │   ├── radius.ts
 │   ├── shadows.ts
-│   └── tailwind-preset.ts        # exports Tailwind preset object
+│   └── tailwind-preset.ts        # exports Tailwind preset object, consumed by apps/web
 └── tests/
 ```
 
@@ -401,10 +389,10 @@ packages/utils/
 │   ├── index.ts
 │   ├── format.ts                 # formatCurrency, formatDate, formatNumber
 │   ├── flags.ts                  # gcssFlagToColor, gcssFlagToLabel, recommendationFor
-│   ├── audience.ts               # FORBIDDEN_PORTAL_KEYS for dev-mode lint
-│   ├── routes.ts                 # named routes for both apps
+│   ├── audience.ts                # FORBIDDEN_KEYS for dev-mode lint
+│   ├── routes.ts                 # named routes for apps/web
 │   ├── env.ts                    # zod env validator factory
-│   └── types.ts                  # shared brand types (Iso2, UlidString, etc.)
+│   └── types.ts                  # AppRole = PortalRole | AdvisorRole, AuthUser, shared brand types
 └── tests/
 ```
 
@@ -437,7 +425,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button, Card } from "@viacerta/ui";
-import { portalClient } from "@viacerta/api-client/portal";
+import { apiClient } from "@viacerta/api-client";
 import { gcssFlagToLabel } from "@viacerta/utils";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -447,7 +435,7 @@ import { ReportHeader } from "./components/ReportHeader";
 import "./styles.css";
 ```
 
-## Aliases (per app)
+## Aliases
 
 `vite.config.ts` and `tsconfig.json` both define:
 
@@ -460,13 +448,24 @@ resolve: {
 }
 ```
 
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+(`paths` resolve relative to this `tsconfig.json`'s own directory by default — no `baseUrl` needed.)
+
 ## Module boundary rules (lint-enforced)
 
 | Rule | Enforced via |
 |---|---|
-| `apps/portal` cannot import from `apps/advisor` | tsconfig — apps don't reference each other |
-| `apps/portal` cannot import `@viacerta/api-client/advisor` | ESLint `no-restricted-imports` |
-| `apps/advisor` cannot import `@viacerta/api-client/portal` | ESLint `no-restricted-imports` |
+| Advisor/internal routes are reachable but gated by role at runtime | `<RoleGate allow={...}>` wrapping each route in `apps/web/src/router.tsx` — see `docs/05` and [ADR-007](./ADR-007-single-app-merge.md) |
 | `features/*` cannot import from sibling `features/*` directly | ESLint `no-restricted-imports` — go through `components/shared` or hooks |
 | No direct `axios` outside `packages/api-client` | ESLint `no-restricted-imports` |
 | No `useState` for form fields > 1 — use react-hook-form | Custom ESLint rule (Phase 2) |

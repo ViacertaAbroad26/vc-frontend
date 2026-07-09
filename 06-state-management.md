@@ -1,6 +1,11 @@
 # 06 — State Management
 
 > **Server state** lives in TanStack Query. **Client/UI state** lives in Zustand or `useState`. Never the two crossed.
+>
+> All of this lives in the single `apps/web` app — one `QueryClient`, one
+> `auth-store`, one `intake-store`. Query-key prefixes like `["advisor",
+> ...]` below are domain namespacing within that one app, not a sign of a
+> separate app or store — see [ADR-007](./ADR-007-single-app-merge.md).
 
 ## The split
 
@@ -15,8 +20,10 @@
 
 ## TanStack Query setup
 
+There is one `QueryClient`, created once in `apps/web/src/lib/query-client.ts` and provided at the root of the app — not one per audience.
+
 ```ts
-// apps/portal/src/lib/query-client.ts
+// apps/web/src/lib/query-client.ts
 import { QueryClient } from "@tanstack/react-query";
 import { ApiError } from "@viacerta/api-client/errors";
 
@@ -77,20 +84,20 @@ Rules:
 
 ## One file per query
 
-Naming: `use<Subject>` (singular: subject of the query). Each file exports the hook + the type it returns. Co-located with the feature.
+Naming: `use<Subject>` (singular: subject of the query). Each file exports the hook + the type it returns. Co-located with the feature. All hooks import `apiClient` and types from `@viacerta/api-client` — there's a single root entry point, no `/portal` or `/advisor` subpath.
 
 ```tsx
-// apps/portal/src/features/journey/useJourney.ts
+// apps/web/src/features/journey/useJourney.ts
 import { useQuery } from "@tanstack/react-query";
-import { portalClient, type PortalComponents } from "@viacerta/api-client/portal";
+import { apiClient, type ApiComponents } from "@viacerta/api-client";
 
-export type StudentJourney = PortalComponents["schemas"]["StudentJourneyResponse"];
+export type StudentJourney = ApiComponents["schemas"]["StudentJourneyResponse"];
 
 export function useJourney() {
   return useQuery({
     queryKey: ["journey"],
     queryFn: async (): Promise<StudentJourney> => {
-      const { data, error } = await portalClient.GET("/api/v1/portal/students/me/journey");
+      const { data, error } = await apiClient.GET("/api/v1/portal/students/me/journey");
       if (error) throw error;
       return data!;
     },
@@ -109,15 +116,15 @@ export function useJourney() {
 ## Mutations + invalidation
 
 ```tsx
-// apps/advisor/src/features/assessment/useConfirmAssessment.ts
+// apps/web/src/features/assessment/useConfirmAssessment.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { advisorClient } from "@viacerta/api-client/advisor";
+import { apiClient } from "@viacerta/api-client";
 
 export function useConfirmAssessment(studentId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await advisorClient.POST(
+      const { data, error } = await apiClient.POST(
         "/api/v1/advisor/students/{student_id}/assessment/confirm",
         { params: { path: { student_id: studentId } } },
       );
@@ -134,16 +141,28 @@ export function useConfirmAssessment(studentId: string) {
 }
 ```
 
+`["advisor", "assessment", studentId]` here is a query-key namespace for an advisor-facing data domain — it has nothing to do with which app this code lives in (it's `apps/web`, same as everything else). It just keeps advisor-domain query keys visually grouped and easy to invalidate together.
+
 ## Optimistic updates
 
 Apply selectively — only where the user benefits from immediate feedback and the rollback story is clean. The GCSS override is a good candidate:
 
 ```tsx
-// apps/advisor/src/features/assessment/useGcssOverride.ts
+// apps/web/src/features/assessment/useGcssOverride.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@viacerta/api-client";
+
 export function useGcssOverride(studentId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: OverrideBody) => { /* ... */ },
+    mutationFn: async (body: OverrideBody) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/advisor/students/{student_id}/assessment/override",
+        { params: { path: { student_id: studentId } }, body },
+      );
+      if (error) throw error;
+      return data!;
+    },
     onMutate: async (body) => {
       await qc.cancelQueries({ queryKey: ["advisor", "assessment", studentId] });
       const previous = qc.getQueryData<AdvisorAssessment>(["advisor", "assessment", studentId]);
@@ -180,6 +199,13 @@ Polls stop when the data reaches a terminal state. No websockets, no SSE, no bro
 
 ## Zustand stores
 
+There are exactly two Zustand stores in the app, both in `apps/web/src/stores/`:
+
+| Store | File | Holds |
+|---|---|---|
+| `auth-store` | `apps/web/src/stores/auth-store.ts` | `user: AuthUser \| null`, `isLoading`, tokens via `authStorage` — `AppRole`-aware, shared by every role |
+| `intake-store` | `apps/web/src/stores/intake-store.ts` | save-and-resume buffer for the intake form |
+
 ### auth-store
 
 Already shown in `docs/05-auth-and-routing.md`.
@@ -189,7 +215,7 @@ Already shown in `docs/05-auth-and-routing.md`.
 The intake form is long. We auto-save to the server with a debounced PATCH every 5 seconds. But we also keep a local buffer in case the network is flaky — when the user types into a question, we update the buffer synchronously; the debounced effect flushes to the server.
 
 ```ts
-// apps/portal/src/stores/intake-store.ts
+// apps/web/src/stores/intake-store.ts
 import { create } from "zustand";
 
 type IntakeState = {
@@ -219,7 +245,7 @@ export const useIntakeStore = create<IntakeState>((set) => ({
 Used by the intake form:
 
 ```tsx
-// apps/portal/src/features/intake/IntakeForm.tsx (excerpt)
+// apps/web/src/features/intake/IntakeForm.tsx (excerpt)
 import { useEffect } from "react";
 import { useIntakeStore } from "@/stores/intake-store";
 import { useIntakeSave } from "./useIntakeSave";
@@ -250,7 +276,7 @@ export function IntakeForm({ submissionId }: { submissionId: string }) {
 Case queue filters belong in the URL — bookmarks, deep links, refresh-survive.
 
 ```tsx
-// apps/advisor/src/features/cases/CaseQueue.tsx (excerpt)
+// apps/web/src/features/cases/CaseQueue.tsx (excerpt)
 import { useSearchParams } from "react-router-dom";
 
 const [params, setParams] = useSearchParams();

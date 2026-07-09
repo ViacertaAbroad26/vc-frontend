@@ -2,14 +2,14 @@
 
 > Charts and data viz live in two places:
 >
-> 1. **Domain components** in `packages/ui/src/viacerta/` — score gauge, dimension bars, flag badge — shared across both apps
-> 2. **Feature-specific** in `apps/*/src/features/*/` — ROI chart, GCRI heatmap — closer to where they're used
+> 1. **Domain components** in `packages/ui/src/viacerta/` — score gauge, dimension bars, flag badge — shared across the whole app
+> 2. **Feature-specific** in `apps/web/src/features/*/` — ROI chart, GCRI heatmap — closer to where they're used
 >
 > Everything uses Recharts (already pinned in `docs/02`); no D3 raw, no chart.js, no Plotly.
 
 ## Score gauge (already in `docs/03-design-system.md` — recapped here for completeness)
 
-Half-donut SVG, 0–100 score, color tone follows GCSS flag. Used on portal dashboard and advisor assessment tab.
+Half-donut SVG, 0–100 score, color tone follows GCSS flag. Used on the student dashboard and the advisor assessment tab — both part of `apps/web`.
 
 ```tsx
 // packages/ui/src/viacerta/ScoreGauge.tsx
@@ -126,11 +126,11 @@ export function DimensionBar({ label, score, max, summary }: Props) {
 
 ## GCRI per-country heatmap
 
-Used in advisor GCRI tab as compact overview. Each country × factor cell tinted by score.
+Used in the advisor GCRI tab as a compact overview. Each country × factor cell tinted by score.
 
 ```tsx
-// apps/advisor/src/features/gcri/GcriHeatmap.tsx
-import type { GcriResult } from '@viacerta/api-client/advisor'
+// apps/web/src/features/gcri/GcriHeatmap.tsx
+import type { GcriResult } from '@viacerta/api-client'
 
 type Props = { results: GcriResult[] }
 
@@ -212,13 +212,46 @@ function factorLabel(f: string) {
 }
 ```
 
+## Outcome prediction band (Phase 3 #1 — heuristic Year-1 employment prior)
+
+Shared by the advisor GCRI tab and the student/parent report's per-country GCRI section.
+Renders the `heuristic-v1` prior from `app/scoring/outcome_prior.py` as a range rather than a
+single point estimate, with an optional advisor-only confidence level (CPRA-HM-style "offer
+probability range + advisor confidence level").
+
+```tsx
+// packages/ui/src/viacerta/OutcomePredictionBand.tsx
+export function OutcomePredictionBand({
+  probability, probabilityLow, probabilityHigh, confidenceLevel, modelVersion, rationale,
+}: {
+  probability: number
+  probabilityLow?: number | null
+  probabilityHigh?: number | null
+  confidenceLevel?: number | null
+  modelVersion?: string | null
+  rationale?: string | null
+}) {
+  // "54-70%" when low/high are present, else the single "{pct}%" point estimate
+  // "Advisor confidence: X/10" only rendered when confidenceLevel is present
+}
+```
+
+| Caller | Fields passed | Notes |
+|---|---|---|
+| `apps/web/src/features/gcri/GcriView.tsx` (advisor) | `probability`, `probabilityLow`, `probabilityHigh`, `confidenceLevel`, `modelVersion`, `rationale` | Full advisor view, including confidence level + rationale. |
+| `apps/web/src/features/report/ReportSections.tsx` `GcriSection` (student/parent report) | `probability`, `probabilityLow`, `probabilityHigh` | No `confidenceLevel`/`rationale`/`modelVersion` — audience separation (advisor-only reasoning artifacts). |
+
+Band width is computed server-side and varies by `riskBand` (LOW narrowest, VERY_HIGH widest) —
+the frontend just renders whatever `outcomeProbabilityLow`/`outcomeProbabilityHigh` it receives.
+
 ## ROI chart (5-year salary projection vs total cost)
 
 Recharts line chart, two lines (cost line static at total program cost; salary line projecting year-by-year). Break-even point highlighted.
 
 ```tsx
-// apps/portal/src/features/report/RoiChart.tsx
-// also used in apps/advisor/src/features/report/RoiChart.tsx via shared feature
+// apps/web/src/features/report/RoiChart.tsx
+// rendered on both the student report (StudentReport) and the advisor's
+// report-builder preview — same component, one feature folder
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer,
@@ -297,10 +330,10 @@ export function RoiChart({ data }: { data: RoiSeries }) {
 
 ## Journey timeline
 
-Linear progress component for portal dashboard.
+Linear progress component for the student dashboard.
 
 ```tsx
-// apps/portal/src/features/journey/JourneyTimeline.tsx
+// apps/web/src/features/journey/JourneyTimeline.tsx
 import { Check, Circle, Dot } from 'lucide-react'
 
 const STAGES = [

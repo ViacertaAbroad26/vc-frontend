@@ -1,35 +1,33 @@
 # 14 — Deployment
 
+> A single deployment from this repo — see [ADR-007](./ADR-007-single-app-merge.md)
+> for why `apps/portal` and `apps/advisor` were merged into `apps/web`.
+
 ## Hosting target
 
-- **Portal** (`apps/portal`) — Vercel (static + edge) OR CloudFront + S3. Both fine; pick one in ADR-001's review.
-- **Advisor** (`apps/advisor`) — same host, **separate project**. Different domain (`advisor.viacerta.com` vs `app.viacerta.com`) reinforces audience separation at the URL level too.
+- **`apps/web`** — Vercel (static + edge) OR CloudFront + S3. Both fine; pick one in ADR-001's review.
 - **Storybook** (Phase 2 only) — internal-only host (Vercel preview behind IP allowlist).
 
-Both apps are SPAs. No SSR. No edge functions. The browser fetches the bundle, gets JWT from login, makes API calls.
+`apps/web` is an SPA. No SSR. No edge functions. The browser fetches the bundle, gets a JWT from login, makes API calls, and routes between student/parent/advisor/internal surfaces based on the logged-in user's role.
 
 ## Domains
 
 | App | Domain | Notes |
 |---|---|---|
-| Portal | `app.viacerta.com` | Students + parents |
-| Advisor | `advisor.viacerta.com` | Advisors + ops + admin |
+| Web | `app.viacerta.com` | Students, parents, advisors, and internal ops — one origin, role-based routing |
 | Marketing | `viacerta.com` | Out of scope here — separate Next.js / Webflow site |
 | API | `api.viacerta.com` | FastAPI backend |
 
-CORS on the backend (set in `app/main.py`) allows exactly these two origins, never `*`.
+CORS on the backend (set in `app/main.py`) allows exactly this one frontend origin, never `*`.
 
 ## Build pipeline
-
-Per app, the production build is:
 
 ```bash
 # at repo root
 pnpm install --frozen-lockfile
 
-# 1. Generate API types against staging or production OpenAPI URL
-PORTAL_OPENAPI_URL=https://api-staging.viacerta.com/openapi.json \
-ADVISOR_OPENAPI_URL=https://api-staging.viacerta.com/advisor/openapi.json \
+# 1. Generate the merged API client types against staging or production OpenAPI URLs
+BACKEND_URL=https://api-staging.viacerta.com \
   pnpm --filter @viacerta/api-client generate
 
 # 2. Type-check + lint
@@ -37,37 +35,43 @@ pnpm -r typecheck
 pnpm -r lint
 
 # 3. Build
-pnpm --filter portal build
-pnpm --filter advisor build
+pnpm --filter @viacerta/web build
 ```
 
-Build outputs:
+Build output:
 
 ```
-apps/portal/dist/      # ~250 KB gzipped target
-apps/advisor/dist/     # ~300 KB gzipped target (more features)
+apps/web/dist/      # single bundle, covering student/parent + advisor + internal routes
 ```
 
 Verify on each build:
 
 ```bash
 # Bundle size budget
-du -sh apps/portal/dist/assets/index-*.js
-du -sh apps/advisor/dist/assets/index-*.js
-
-# Audience leak check
-./scripts/check-portal-bundle.sh
+pnpm --filter @viacerta/web size
 ```
 
-## Vercel config — per app
+Budgets (gzipped, set with headroom over the measured advisor+internal build) are defined in the `size-limit` field of `apps/web/package.json`:
 
-Each app is a separate Vercel project. Settings:
+| Chunk | Measured | Budget |
+|---|---|---|
+| main bundle (`index-*.js`) | ~118 kB | 150 kB |
+| vendor bundle (`vendor-*.js`) | ~65 kB | 80 kB |
+| query bundle (`query-*.js`) | ~13 kB | 20 kB |
+| charts bundle (`charts-*.js`) | <1 kB | 5 kB |
+| stylesheet (`index-*.css`) | ~5 kB | 10 kB |
+
+The old per-audience "bundle leak" check (`scripts/check-portal-bundle.sh`) no longer applies — `apps/web`'s bundle legitimately contains both student-facing and advisor-facing code. Audience separation is enforced at runtime by `<RoleGate>` and at the data layer by the backend, not by what's present in the bundle. See ADR-007 for the tradeoff this accepts.
+
+## Vercel config
+
+One Vercel project. Settings:
 
 | Setting | Value |
 |---|---|
 | Framework preset | Vite |
-| Root directory | `apps/portal` (or `apps/advisor`) |
-| Build command | `cd ../.. && pnpm install && pnpm --filter @viacerta/api-client generate && pnpm --filter <app> build` |
+| Root directory | `apps/web` |
+| Build command | `cd ../.. && pnpm install && pnpm --filter @viacerta/api-client generate && pnpm --filter @viacerta/web build` |
 | Output directory | `dist` |
 | Install command | (empty — handled in build) |
 | Node version | 20 |
@@ -76,7 +80,6 @@ Environment variables per environment (Production / Preview / Development):
 
 ```bash
 VITE_API_BASE_URL=https://api.viacerta.com
-VITE_TOKEN_STORAGE_KEY_PREFIX=vc.portal      # vc.advisor for advisor app
 VITE_SENTRY_DSN=<frontend dsn>
 VITE_ENV=production
 ```
@@ -117,22 +120,21 @@ If we'd rather keep everything inside AWS (India region):
 
 ```
 ap-south-1
-├── S3 bucket: app.viacerta.com           (portal dist)
-├── S3 bucket: advisor.viacerta.com       (advisor dist)
-├── CloudFront distribution per bucket    (TLS via ACM, edge cache)
-└── WAF managed ruleset                   (bot protection, OWASP top 10)
+├── S3 bucket: app.viacerta.com           (apps/web dist)
+├── CloudFront distribution                (TLS via ACM, edge cache)
+└── WAF managed ruleset                    (bot protection, OWASP top 10)
 ```
 
 CI pushes to S3 + invalidates CloudFront on each deploy:
 
 ```yaml
-- name: Deploy portal to S3
+- name: Deploy web to S3
   run: |
-    aws s3 sync apps/portal/dist/ s3://app.viacerta.com/ \
+    aws s3 sync apps/web/dist/ s3://app.viacerta.com/ \
       --delete \
       --cache-control "public, max-age=31536000, immutable" \
       --exclude index.html
-    aws s3 cp apps/portal/dist/index.html s3://app.viacerta.com/index.html \
+    aws s3 cp apps/web/dist/index.html s3://app.viacerta.com/index.html \
       --cache-control "no-cache"
     aws cloudfront create-invalidation \
       --distribution-id $CF_DIST_ID --paths "/index.html" "/"
@@ -170,28 +172,19 @@ jobs:
       - name: Generate API types from staging backend
         run: pnpm --filter @viacerta/api-client generate
         env:
-          PORTAL_OPENAPI_URL: ${{ secrets.STAGING_PORTAL_OPENAPI_URL }}
-          ADVISOR_OPENAPI_URL: ${{ secrets.STAGING_ADVISOR_OPENAPI_URL }}
+          BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
 
       - run: pnpm -r typecheck
       - run: pnpm -r lint
       - run: pnpm -r test
-      - run: pnpm --filter portal build
-      - run: pnpm --filter advisor build
-      - run: ./scripts/check-portal-bundle.sh
+      - run: pnpm --filter @viacerta/web build
 
-      - name: Deploy portal (Vercel)
-        run: pnpm dlx vercel --token=$VERCEL_TOKEN --prod --cwd apps/portal --yes
+      - name: Deploy web (Vercel)
+        run: pnpm dlx vercel --token=$VERCEL_TOKEN --prod --cwd apps/web --yes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID_PORTAL: ${{ secrets.VERCEL_PROJECT_ID_PORTAL }}
-
-      - name: Deploy advisor (Vercel)
-        run: pnpm dlx vercel --token=$VERCEL_TOKEN --prod --cwd apps/advisor --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID_ADVISOR: ${{ secrets.VERCEL_PROJECT_ID_ADVISOR }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   production:
     needs: staging
@@ -208,35 +201,37 @@ Production deploys require manual approval in GitHub Environments.
 
 ## Codegen against the right backend
 
-Per environment the OpenAPI URL is different. Wrong URL = wrong types = compile errors. Setting is keyed to the deploy env:
+Per environment the backend URL is different. Wrong URL = wrong types = compile errors. Setting is keyed to the deploy env:
 
-| Env | `PORTAL_OPENAPI_URL` |
+| Env | `BACKEND_URL` |
 |---|---|
-| Local dev | `http://localhost:8000/openapi.json` |
-| Staging | `https://api-staging.viacerta.com/openapi.json` |
-| Production | `https://api.viacerta.com/openapi.json` |
+| Local dev | `http://localhost:8000` |
+| Staging | `https://api-staging.viacerta.com` |
+| Production | `https://api.viacerta.com` |
 
-Codegen runs in CI before build. The generated file is **committed** to the repo (see ADR-005). The CI build re-generates and checks for diff — if backend changed but the committed types didn't get updated, CI fails:
+`scripts/generate.ts` fetches `${BACKEND_URL}/openapi.json` and `${BACKEND_URL}/advisor/openapi.json`, merges both specs, and runs `openapi-typescript` once to produce `packages/api-client/src/generated/api.d.ts`.
+
+Codegen runs in CI before build. The generated file is **committed** to the repo (see ADR-005, partially superseded by ADR-007). The CI build re-generates and checks for diff — if backend changed but the committed types didn't get updated, CI fails:
 
 ```yaml
 - name: Verify committed types match backend
   run: |
     pnpm --filter @viacerta/api-client generate
-    git diff --exit-code packages/api-client/src/types/
+    git diff --exit-code packages/api-client/src/generated/
 ```
 
-This forces the engineer to commit regenerated types when the backend spec changes; nothing slips out of sync between deploys.
+This forces the engineer to commit regenerated types when either backend spec changes; nothing slips out of sync between deploys.
 
 ## Observability
 
 | Concern | Tool |
 |---|---|
-| Frontend errors | Sentry — separate project per app, identifies portal vs advisor errors |
+| Frontend errors | Sentry — single project for `apps/web` |
 | Performance / Core Web Vitals | Sentry Performance or Vercel Web Vitals dashboard |
 | Real user monitoring | Sentry browser SDK with sampling at 10% (100% for errors) |
-| Bundle size tracking | `size-limit` CI check, fails PR if portal > 280 KB gz or advisor > 340 KB gz |
+| Bundle size tracking | `size-limit` (`pnpm --filter @viacerta/web size`), fails if `apps/web` exceeds the per-chunk budgets in `package.json` — wire into CI as a required check |
 
-`apps/portal/src/main.tsx` initialises Sentry:
+`apps/web/src/main.tsx` initialises Sentry:
 
 ```tsx
 import * as Sentry from '@sentry/react'
@@ -253,7 +248,7 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
 }
 ```
 
-`maskAllText: true` is non-negotiable for the portal — student PII in replays is exactly the kind of thing DPDP says we don't want crossing borders.
+`maskAllText: true` is non-negotiable — student PII in replays is exactly the kind of thing DPDP says we don't want crossing borders, and the same bundle now also serves advisor sessions which see that PII directly.
 
 ## Cache strategy
 
@@ -278,20 +273,20 @@ In both cases, rollback is < 60 seconds.
 - [ ] `pnpm install --frozen-lockfile` is reproducible
 - [ ] `pnpm -r typecheck` passes
 - [ ] `pnpm -r test` passes locally
-- [ ] `scripts/check-portal-bundle.sh` passes locally
-- [ ] If backend OpenAPI changed, regenerated types are committed
+- [ ] If backend OpenAPI changed (either spec), regenerated types are committed
 - [ ] No new `console.log` left in production code (ESLint catches this in `--max-warnings 0`)
+- [ ] `pnpm --filter @viacerta/web size` passes (bundle size within budget)
 - [ ] CSP headers in `vercel.json` updated if a new third-party domain is contacted
-- [ ] Bundle size within budget (`size-limit` CI check)
+- [ ] Any new advisor/internal route is wrapped in `<RoleGate allow={...}>` — there is no build-level backstop now (ADR-007)
 
-## Cost estimate (year 1, two apps)
+## Cost estimate (year 1, single app)
 
 | Item | $/month |
 |---|---|
-| Vercel — Pro plan, 2 projects | 40 |
+| Vercel — Pro plan, 1 project | 20 |
 | Sentry — Team plan | 26 |
-| CloudFront alternative (if chosen) — bandwidth + requests | 20–80 |
-| Total | ~$65–150/mo |
+| CloudFront alternative (if chosen) — bandwidth + requests | 15–60 |
+| Total | ~$45–105/mo |
 
 Negligible compared to backend (`docs/13` in backend specs estimates ~$900–1,800/mo). Frontend cost is not a meaningful budget line at MVP scale.
 

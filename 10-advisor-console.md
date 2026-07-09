@@ -1,44 +1,63 @@
 # 10 — Advisor Console
 
-> `apps/advisor` for ADVISOR + SENIOR_ADVISOR. Other internal roles in `docs/11`.
+> Single app (`apps/web`), role-gated routes. See [ADR-007](./ADR-007-single-app-merge.md)
+> for the full rationale — this doc covers the advisor-facing screens that
+> live under `apps/web/src/routes/advisor/`.
+
+> For ADVISOR + SENIOR_ADVISOR. Other internal roles in `docs/11`.
 
 ## Screen map
 
+These routes are defined in `apps/web/src/router.tsx` alongside the
+student/parent and internal-ops routes, each wrapped in
+`<RoleGate allow={ADVISOR_ROLES}>` (or `SENIOR_ROLES` for calibration —
+both from `apps/web/src/lib/roles.ts`). Unauthorized roles are redirected
+to `/forbidden`.
+
 ```
-/login                          public — AdvisorLoginPage
-/                               authed — CaseQueuePage (default)
-/cases                          alias to /
-/students/:studentId            StudentDetailPage (tabbed)
+/login                          public — LoginPage (single login for all roles)
+/                               authed — HomePage redirects ADVISOR/SENIOR_ADVISOR to /cases
+/cases                          CaseQueuePage — RoleGate allow={ADVISOR_ROLES}
+/students/:studentId            StudentDetailPage (tabbed) — RoleGate allow={ADVISOR_ROLES}
   ?tab=assessment               assessment + GCSS overrides
   ?tab=gcri                     GCRI per-country, override ±5
   ?tab=report                   report insight composer
   ?tab=audit                    full audit trail
   ?tab=sessions                 session 1 / session 2 records
-/calibration                    weekly inter-rater cases (Phase 2 scope, stub in MVP)
+/calibration                    weekly inter-rater cases — RoleGate allow={SENIOR_ROLES} (Phase 2 scope, stub in MVP)
 ```
 
-## Layout shell — `apps/advisor/src/components/AdvisorShell.tsx`
+## Layout shell — `apps/web/src/components/layout/AppShell.tsx`
+
+There is no separate `AdvisorShell`. `<AppShell>` (`<SideNav>` + `<TopBar>`)
+is shared across the whole app; `<SideNav>` filters which links render based
+on the current user's `AppRole` (`@/lib/roles`), and `<TopBar>` shows the
+role label and logout. The example below shows the advisor-relevant nav
+items as they'd appear inside `<SideNav>`/`<TopBar>` for an ADVISOR or
+SENIOR_ADVISOR user — it is illustrative of the role-aware rendering, not a
+standalone shell component.
 
 ```tsx
+// apps/web/src/components/layout/AppShell.tsx (advisor-relevant excerpt)
 import { Outlet, NavLink } from 'react-router-dom'
-import { Briefcase, LogOut, ShieldCheck } from 'lucide-react'
-import { useAdvisorAuthStore } from '@/stores/auth-store'
+import { ShieldCheck, LogOut } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
 
-export function AdvisorShell() {
-  const { user, logout } = useAdvisorAuthStore()
+export function AppShell() {
+  const { user, logout } = useAuthStore()
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-navy-600" />
-            <span className="font-semibold">ViaCerta · Advisor</span>
+            <span className="font-semibold">ViaCerta</span>
             <span className="ml-3 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
               {roleLabel(user!.role)}
             </span>
           </div>
           <nav className="flex items-center gap-6 text-sm">
-            <NavLink to="/" end className={navClass}>Cases</NavLink>
+            <NavLink to="/cases" end className={navClass}>Cases</NavLink>
             {user!.role === 'SENIOR_ADVISOR' && (
               <NavLink to="/calibration" className={navClass}>Calibration</NavLink>
             )}
@@ -65,16 +84,20 @@ function roleLabel(role: string) {
 }
 ```
 
-## Screen 1 — CaseQueuePage (`/`)
+`<SideNav>` (`apps/web/src/components/layout/SideNav.tsx`) renders "Cases"
+and "Calibration" links only for users whose role is in `ADVISOR_ROLES` /
+`SENIOR_ROLES` respectively — see `apps/web/src/lib/roles.ts`.
+
+## Screen 1 — CaseQueuePage (`/cases`)
 
 The advisor's primary workspace. URL-state-driven filters; polls every 30s when focused.
 
 ```tsx
-// apps/advisor/src/routes/CaseQueuePage.tsx
+// apps/web/src/routes/advisor/CaseQueuePage.tsx
 import { useSearchParams, Link } from 'react-router-dom'
 import { Card, CardBody, AsyncBoundary } from '@viacerta/ui'
 import { GcssFlagBadge } from '@viacerta/ui/viacerta'
-import { useAdvisorCases } from '@/hooks/use-advisor-cases'
+import { useAdvisorCases } from '@/features/cases/useCases'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, Clock } from 'lucide-react'
 
@@ -200,13 +223,13 @@ function stageLabel(s: string): string {
 Tabbed shell. Tab switches via `?tab=` so deep-linking + back-button work.
 
 ```tsx
-// apps/advisor/src/routes/StudentDetailPage.tsx
+// apps/web/src/routes/advisor/StudentDetailPage.tsx
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { AsyncBoundary, Card, CardBody } from '@viacerta/ui'
-import { useStudent } from '@/hooks/use-student'
+import { useStudentDetail } from '@/features/student-detail/useStudentDetail'
 import { AssessmentTab } from '@/features/assessment/AssessmentTab'
 import { GcriTab } from '@/features/gcri/GcriTab'
-import { ReportComposerTab } from '@/features/report/ReportComposerTab'
+import { ReportComposerTab } from '@/features/report-builder/ReportComposerTab'
 import { AuditTab } from '@/features/audit/AuditTab'
 import { SessionsTab } from '@/features/sessions/SessionsTab'
 
@@ -237,7 +260,7 @@ export function StudentDetailPage() {
 function Inner({
   studentId, tab, setTab,
 }: { studentId: string; tab: string; setTab: (t: string) => void }) {
-  const { data: student } = useStudent(studentId)
+  const { data: student } = useStudentDetail(studentId)
   if (!student) return null
 
   return (
@@ -292,12 +315,12 @@ function Inner({
 Shows full assessment with per-sub-component scores, anchors, AI rationale, override controls, confirm button.
 
 ```tsx
-// apps/advisor/src/features/assessment/AssessmentTab.tsx
+// apps/web/src/features/assessment/AssessmentTab.tsx
 import { useState } from 'react'
 import { Card, CardBody, Button } from '@viacerta/ui'
 import { GcssFlagBadge, ScoreGauge, EvidenceLevelBadge } from '@viacerta/ui/viacerta'
-import { useAssessment } from '@/hooks/use-assessment'
-import { useConfirmAssessment } from '@/hooks/use-confirm-assessment'
+import { useAssessment } from './useAssessment'
+import { useConfirmAssessment } from './useConfirmAssessment'
 import { OverrideDialog } from './OverrideDialog'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -443,17 +466,17 @@ function dimensionLabel(key: string): string {
 ## Tab 2 — GcriTab
 
 ```tsx
-// apps/advisor/src/features/gcri/GcriTab.tsx
+// apps/web/src/features/gcri/GcriTab.tsx
 import { Card, CardBody, Button } from '@viacerta/ui'
 import { RiskBandPill } from '@viacerta/ui/viacerta'
-import { useGcri } from '@/hooks/use-gcri'
-import { useTriggerGcri } from '@/hooks/use-trigger-gcri'
+import { useGcriResults } from './useGcriResults'
+import { useTriggerGcri } from './useTriggerGcri'
 import { GcriOverrideDialog } from './GcriOverrideDialog'
 import { useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 
 export function GcriTab({ studentId }: { studentId: string }) {
-  const { data } = useGcri(studentId)
+  const { data } = useGcriResults(studentId)
   const trigger = useTriggerGcri(studentId)
   const [overrideCountry, setOverrideCountry] = useState<string | null>(null)
 
@@ -517,6 +540,21 @@ export function GcriTab({ studentId }: { studentId: string }) {
               ))}
             </div>
 
+            {/* Phase 3 #1 — see docs/12-visualization.md "Outcome prediction band". Renders
+                outcomeProbability(Low|High) as a range + outcomeConfidenceLevel as "X/10". */}
+            {r.outcomeProbability != null && (
+              <div className="mt-3">
+                <OutcomePredictionBand
+                  probability={r.outcomeProbability}
+                  probabilityLow={r.outcomeProbabilityLow}
+                  probabilityHigh={r.outcomeProbabilityHigh}
+                  confidenceLevel={r.outcomeConfidenceLevel}
+                  modelVersion={r.outcomeProbabilityModelVersion}
+                  rationale={r.outcomeProbabilityRationale}
+                />
+              </div>
+            )}
+
             <div className="mt-3">
               <Button variant="ghost" size="sm" onClick={() => setOverrideCountry(r.country)}>
                 Override ±5
@@ -550,10 +588,10 @@ function factorLabel(f: string): string {
 ## Tab 3 — ReportComposerTab
 
 ```tsx
-// apps/advisor/src/features/report/ReportComposerTab.tsx
+// apps/web/src/features/report-builder/ReportComposerTab.tsx
 import { Card, CardBody, Button } from '@viacerta/ui'
-import { useReport } from '@/hooks/use-report'
-import { usePublishReport } from '@/hooks/use-publish-report'
+import { useBuildReport } from './useBuildReport'
+import { usePublishReport } from './usePublishReport'
 import { InsightEditor } from './InsightEditor'
 
 const SECTIONS = [
@@ -566,7 +604,7 @@ const SECTIONS = [
 ] as const
 
 export function ReportComposerTab({ studentId }: { studentId: string }) {
-  const { data: report } = useReport(studentId)
+  const { data: report } = useBuildReport(studentId)
   const publish = usePublishReport(studentId)
   if (!report) return null
 
@@ -637,10 +675,10 @@ function sectionLabel(s: string): string {
 ## Tab 4 — SessionsTab
 
 ```tsx
-// apps/advisor/src/features/sessions/SessionsTab.tsx
+// apps/web/src/features/sessions/SessionsTab.tsx
 import { Card, CardBody, Button } from '@viacerta/ui'
-import { useSessions } from '@/hooks/use-sessions'
-import { useRecordSession } from '@/hooks/use-record-session'
+import { useSessions } from './useSessions'
+import { useRecordSession } from './useRecordSession'
 import { format } from 'date-fns'
 import { useState } from 'react'
 
@@ -710,9 +748,9 @@ function SessionCard({ label, session, onRecord, disabled }: {
 ## Tab 5 — AuditTab
 
 ```tsx
-// apps/advisor/src/features/audit/AuditTab.tsx
+// apps/web/src/features/audit/AuditTab.tsx
 import { Card, CardBody, AsyncBoundary } from '@viacerta/ui'
-import { useAudit } from '@/hooks/use-audit'
+import { useAudit } from './useAudit'
 import { format } from 'date-fns'
 
 export function AuditTab({ studentId }: { studentId: string }) {
@@ -770,19 +808,23 @@ function actionLabel(a: string): string {
 
 ## Hooks summary
 
-| Hook | Endpoint | Cache key |
-|---|---|---|
-| `useAdvisorCases({stage, search})` | GET `/advisor/cases` | `['advisor', 'cases', filters]` |
-| `useStudent(id)` | GET `/advisor/students/{id}` | `['advisor', 'student', id]` |
-| `useAssessment(id)` | GET `/advisor/students/{id}/assessment` | `['advisor', 'assessment', id]` |
-| `useGcssOverride(id)` | POST override | invalidates `['advisor', 'assessment', id]` |
-| `useConfirmAssessment(id)` | POST confirm | invalidates `['advisor', 'assessment', id]` + journey |
-| `useGcri(id)` | GET `/advisor/students/{id}/gcri` | `['advisor', 'gcri', id]` |
-| `useTriggerGcri(id)` | POST trigger | invalidates `['advisor', 'gcri', id]` |
-| `useGcriOverride(id, country)` | POST override | invalidates `['advisor', 'gcri', id]` |
-| `useReport(id)` | GET `/advisor/students/{id}/report` | `['advisor', 'report', id]` |
-| `useSaveInsight(id, section)` | PUT insight | optimistic update on `['advisor', 'report', id]` |
-| `usePublishReport(id)` | POST publish | invalidates report + journey |
-| `useSessions(id)` | GET sessions | `['advisor', 'sessions', id]` |
-| `useRecordSession(id)` | POST session | invalidates sessions + journey |
-| `useAudit({entityType, entityId})` | GET audit | `['advisor', 'audit', type, id]` |
+All hooks call `apiClient` from `@viacerta/api-client` and live alongside
+their feature components under `apps/web/src/features/`. Endpoint paths
+below are unchanged backend routes (`/api/v1/advisor/...`).
+
+| Hook | Feature folder | Endpoint | Cache key |
+|---|---|---|---|
+| `useAdvisorCases({stage, search})` | `features/cases` | GET `/advisor/cases` | `['advisor', 'cases', filters]` |
+| `useStudentDetail(id)` | `features/student-detail` | GET `/advisor/students/{id}` | `['advisor', 'student', id]` |
+| `useAssessment(id)` | `features/assessment` | GET `/advisor/students/{id}/assessment` | `['advisor', 'assessment', id]` |
+| `useGcssOverride(id)` | `features/assessment` | POST override | invalidates `['advisor', 'assessment', id]` |
+| `useConfirmAssessment(id)` | `features/assessment` | POST confirm | invalidates `['advisor', 'assessment', id]` + journey |
+| `useGcriResults(id)` | `features/gcri` | GET `/advisor/students/{id}/gcri` | `['advisor', 'gcri', id]` |
+| `useTriggerGcri(id)` | `features/gcri` | POST trigger | invalidates `['advisor', 'gcri', id]` |
+| `useGcriOverride(id, country)` | `features/gcri` | POST override | invalidates `['advisor', 'gcri', id]` |
+| `useBuildReport(id)` | `features/report-builder` | GET `/advisor/students/{id}/report` | `['advisor', 'report', id]` |
+| `useAddInsight(id, section)` | `features/report-builder` | PUT insight | optimistic update on `['advisor', 'report', id]` |
+| `usePublishReport(id)` | `features/report-builder` | POST publish | invalidates report + journey |
+| `useSessions(id)` | `features/sessions` | GET sessions | `['advisor', 'sessions', id]` |
+| `useRecordSession(id)` | `features/sessions` | POST session | invalidates sessions + journey |
+| `useAudit({entityType, entityId})` | `features/audit` | GET audit | `['advisor', 'audit', type, id]` |

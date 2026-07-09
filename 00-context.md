@@ -2,16 +2,22 @@
 
 ## What we're building
 
-Two React apps that surface the ViaCerta backend to three audiences. Both apps are SPAs built with Vite, consumed via the backend's two OpenAPI specs.
+> **Updated by [ADR-007](./ADR-007-single-app-merge.md)**: this used to be
+> two separate React apps. They are now **one app, `apps/web`**, with
+> role-based routing. The table and "split" framing below describe the
+> *audiences and surfaces*, which are unchanged — only the deployment unit
+> changed (one SPA, one domain, one build).
 
-| App | Audiences | Hostname (prod) | Backend spec |
+A single React SPA (`apps/web`, built with Vite) that surfaces the ViaCerta backend to three audiences, consuming both of the backend's OpenAPI specs (merged into one generated client — see `docs/04`).
+
+| Surface | Audiences | Hostname (prod) | Backend spec |
 |---|---|---|---|
-| Portal | Student + Parent | `app.viacerta.com` | `/openapi.json` |
-| Advisor | Advisor + Senior + Coordinator + Ops + Admin | `console.viacerta.com` | `/advisor/openapi.json` |
+| Student/Parent | Student + Parent | `app.viacerta.com` | `/openapi.json` |
+| Advisor/Internal | Advisor + Senior + Coordinator + Ops + Admin | `app.viacerta.com` (same origin, role-gated routes) | `/advisor/openapi.json` |
 
-The split exists for **audience separation**. The portal app's TypeScript types are generated from the portal-only OpenAPI spec — advisor-only fields literally don't exist in the portal codebase.
+Audience separation is now **runtime**, enforced by `<RoleGate>` and `<ProtectedRoute>` on routes (plus `<SideNav>` filtering), backed by the actual security boundary: the backend rejects a STUDENT's JWT on `/api/v1/advisor/*` regardless of what the frontend bundle contains.
 
-## What the portal does
+## What the student/parent surface does
 
 1. Student registers, selects persona (school / final-year UG / working pro).
 2. Fills out a persona-routed intake form (save-and-resume across sessions).
@@ -27,7 +33,7 @@ The split exists for **audience separation**. The portal app's TypeScript types 
 7. Records a decision at the gate (Enroll / Self-Prep / Withdraw).
 8. Optional: parent registers separately, requests link to a student, student approves → parent sees parent-summary only.
 
-## What the advisor app does
+## What the advisor/internal surface does
 
 1. Advisor logs in → sees case queue filtered by state + flag.
 2. Clicks a case → student detail with intake answers, documents (with evidence level), AI pre-score, audit summary.
