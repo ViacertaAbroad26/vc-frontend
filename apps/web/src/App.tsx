@@ -2,6 +2,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { apiAxios, authStorage, type AuthUser } from "@viacerta/api-client";
 import { Toaster, toast } from "@viacerta/ui";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 
@@ -55,6 +56,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster />
+      <SpeedInsights />
     </QueryClientProvider>
   );
 }

@@ -49,6 +49,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
     "@tanstack/react-query": "^5.28.0",
+    "@vercel/speed-insights": "^2.0.0",
     "@viacerta/api-client": "workspace:*",
     "@viacerta/design-tokens": "workspace:*",
     "@viacerta/ui": "workspace:*",
