@@ -23,6 +23,7 @@ export function App() {
       // reload -> 401 -> redirect loop for every logged-out visitor.
       if (!authStorage.getAccessToken()) {
         setUser(null);
+        setLoading(false);
         return;
       }
       setLoading(true);
