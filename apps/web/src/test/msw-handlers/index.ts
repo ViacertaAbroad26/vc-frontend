@@ -5,6 +5,7 @@ import { documentHandlers } from "./documents";
 import { intakeHandlers } from "./intake";
 import { internalHandlers } from "./internal";
 import { notificationHandlers } from "./notifications";
+import { platformFeatureHandlers } from "./platform-features";
 import { profileHandlers } from "./profile";
 import { reportHandlers } from "./report";
 import { studentHandlers } from "./student";
@@ -18,6 +19,7 @@ export const handlers = [
   ...advisorHandlers,
   ...internalHandlers,
   ...notificationHandlers,
+  ...platformFeatureHandlers,
   ...profileHandlers,
   ...configurationHandlers,
 ];

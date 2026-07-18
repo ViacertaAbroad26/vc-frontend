@@ -9,7 +9,7 @@ body,
 }
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  @apply bg-gray-50 text-gray-900 antialiased transition-colors dark:bg-navy-900 dark:text-gray-50;
 }
 
 @keyframes blink {

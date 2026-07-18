@@ -114,23 +114,17 @@ export function NinetyDayPlanSection({ plan }: { plan: StudentReport["ninetyDayP
   return (
     <Section title="Your 90-day plan">
       <div className="space-y-3">
-        {plan.map((week, i) => (
+        {plan.map((item, i) => (
           <Card key={i}>
             <CardBody>
-              {"week" in week && (
-                <div className="text-xs font-medium uppercase tracking-wide text-navy-600">
-                  Week {String(week.week)}
-                </div>
+              {"focus" in item && typeof item.focus === "string" && (
+                <h3 className="font-medium text-gray-900">{item.focus}</h3>
               )}
-              {"focus" in week && typeof week.focus === "string" && (
-                <h3 className="mt-1 font-medium text-gray-900">{week.focus}</h3>
+              {"action" in item && typeof item.action === "string" && (
+                <p className="mt-1 text-sm text-gray-700">{item.action}</p>
               )}
-              {"actions" in week && Array.isArray(week.actions) && (
-                <ul className="mt-2 space-y-1 text-sm text-gray-700">
-                  {week.actions.map((action, j) => (
-                    <li key={j}>· {String(action)}</li>
-                  ))}
-                </ul>
+              {"window_days" in item && (
+                <p className="mt-1 text-xs text-gray-500">Window: {String(item.window_days)} days</p>
               )}
             </CardBody>
           </Card>
@@ -150,14 +144,16 @@ export function RiskRegisterSection({ items }: { items: StudentReport["riskRegis
           <Card key={i}>
             <CardBody>
               <div className="flex items-start justify-between gap-3">
-                {"risk" in item && <h3 className="font-medium text-gray-900">{String(item.risk)}</h3>}
+                {"area" in item && <h3 className="font-medium text-gray-900">{String(item.area)}</h3>}
+                {/* This is a generic LOW/MEDIUM/HIGH severity (see report_build.py::_build_risk_register),
+                    not a GCRI RiskBand (LOW/MODERATE/HIGH/VERY_HIGH) — a plain badge, not RiskBandPill. */}
                 {"severity" in item && typeof item.severity === "string" && (
-                  <RiskBandPill band={item.severity as RiskBand} />
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    {item.severity}
+                  </span>
                 )}
               </div>
-              {"mitigation" in item && (
-                <p className="mt-1 text-sm text-gray-700">{String(item.mitigation)}</p>
-              )}
+              {"note" in item && <p className="mt-1 text-sm text-gray-700">{String(item.note)}</p>}
             </CardBody>
           </Card>
         ))}

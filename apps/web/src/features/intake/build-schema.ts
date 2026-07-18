@@ -1,27 +1,31 @@
 import type { IntakeQuestion } from "@viacerta/api-client";
 import { z, type ZodTypeAny } from "zod";
 
-export function buildIntakeSchema(questions: IntakeQuestion[]): z.ZodObject<Record<string, ZodTypeAny>> {
+import { isVisible } from "./visibility";
+
+/** True if a non-empty answer was given, per question type. */
+function hasAnswer(q: IntakeQuestion, value: unknown): boolean {
+  if (q.type === "multi_select") return Array.isArray(value) && value.length > 0;
+  return typeof value === "string" ? value.trim().length > 0 : value != null;
+}
+
+export function buildIntakeSchema(questions: IntakeQuestion[]): ZodTypeAny {
   const shape: Record<string, ZodTypeAny> = {};
   for (const q of questions) {
     let field: ZodTypeAny;
     switch (q.type) {
       case "short_text":
-        field = q.required ? z.string().trim().min(1, "Required") : z.string().trim();
-        break;
       case "long_text":
-        field = q.required
-          ? z.string().trim().min(10, "Please provide a more complete answer")
-          : z.string().trim();
+        field = z.string().trim();
         break;
       case "single_select":
-        field = q.required ? z.string().min(1, "Pick one") : z.string();
+        field = z.string();
         break;
       case "multi_select":
-        field = q.required ? z.array(z.string()).min(1, "Pick at least one") : z.array(z.string());
+        field = z.array(z.string());
         break;
       case "number":
-        field = z.coerce.number();
+        field = z.coerce.number().optional();
         break;
       case "date":
         field = z.string();
@@ -29,9 +33,21 @@ export function buildIntakeSchema(questions: IntakeQuestion[]): z.ZodObject<Reco
       default:
         field = z.unknown();
     }
-    shape[q.id] = q.required ? field : field.optional();
+    shape[q.id] = field.optional();
   }
-  return z.object(shape);
+
+  // Required-ness is conditional on visibility (a required question hidden
+  // by a visible_if the student never triggered must not block submit) —
+  // evaluated here against the full answer set, mirroring the backend's
+  // equivalent check in intake_service.py::submit_final.
+  return z.object(shape).superRefine((data, ctx) => {
+    for (const q of questions) {
+      if (!q.required || !isVisible(q.visibleIf, data)) continue;
+      if (!hasAnswer(q, data[q.id])) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [q.id], message: "Required" });
+      }
+    }
+  });
 }
 
 export function defaultAnswers(questions: IntakeQuestion[]): Record<string, unknown> {
