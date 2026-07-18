@@ -11,22 +11,22 @@ export function Table({ className, ...rest }: HTMLAttributes<HTMLTableElement>) 
 }
 
 export function TableHeader({ className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("border-b border-gray-200", className)} {...rest} />;
+  return <thead className={cn("border-b border-gray-200 dark:border-navy-700", className)} {...rest} />;
 }
 
 export function TableBody({ className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("divide-y divide-gray-100", className)} {...rest} />;
+  return <tbody className={cn("divide-y divide-gray-100 dark:divide-navy-700", className)} {...rest} />;
 }
 
 export function TableRow({ className, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn("transition-colors hover:bg-gray-50", className)} {...rest} />;
+  return <tr className={cn("transition-colors hover:bg-gray-50 dark:hover:bg-navy-700", className)} {...rest} />;
 }
 
 export function TableHead({ className, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
       className={cn(
-        "h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-gray-500",
+        "h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400",
         className,
       )}
       {...rest}
@@ -35,5 +35,5 @@ export function TableHead({ className, ...rest }: ThHTMLAttributes<HTMLTableCell
 }
 
 export function TableCell({ className, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-4 py-3 align-middle text-gray-900", className)} {...rest} />;
+  return <td className={cn("px-4 py-3 align-middle text-gray-900 dark:text-gray-50", className)} {...rest} />;
 }

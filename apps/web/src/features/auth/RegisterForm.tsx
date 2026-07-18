@@ -63,7 +63,7 @@ export function RegisterForm() {
         <Label htmlFor="role">I am a</Label>
         <select
           id="role"
-          className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
+          className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900"
           {...register("role")}
         >
           <option value="STUDENT">Student</option>

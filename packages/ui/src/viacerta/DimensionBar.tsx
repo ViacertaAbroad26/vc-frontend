@@ -18,12 +18,12 @@ export function DimensionBar({ label, score, max, flag }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium text-gray-900">{label}</span>
-        <span className="tabular-nums text-gray-600">
-          {score} <span className="text-gray-400">/ {max}</span>
+        <span className="font-medium text-gray-900 dark:text-gray-50">{label}</span>
+        <span className="tabular-nums text-gray-600 dark:text-gray-300">
+          {score} <span className="text-gray-400 dark:text-gray-500">/ {max}</span>
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-100">
+      <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-navy-700">
         <div className={`h-full rounded-full transition-all ${TRACK[tone]}`} style={{ width: `${pct}%` }} />
       </div>
     </div>

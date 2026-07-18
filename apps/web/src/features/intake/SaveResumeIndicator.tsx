@@ -8,7 +8,7 @@ export function SaveResumeIndicator() {
 
   if (isSaving) {
     return (
-      <span className="inline-flex items-center text-xs text-gray-600">
+      <span className="inline-flex items-center text-xs text-gray-600 dark:text-gray-400">
         <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Saving…
       </span>
     );
