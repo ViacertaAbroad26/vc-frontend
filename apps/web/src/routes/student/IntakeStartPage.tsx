@@ -35,8 +35,8 @@ export default function IntakeStartPage() {
         {PERSONAS.map((p) => (
           <Card key={p.key}>
             <CardBody>
-              <h3 className="font-medium text-gray-900">{p.label}</h3>
-              <p className="mt-1 text-sm text-gray-600">{p.blurb}</p>
+              <h3 className="font-medium text-gray-900 dark:text-gray-50">{p.label}</h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{p.blurb}</p>
               <Button
                 onClick={() => pick(p.key)}
                 variant="outline"

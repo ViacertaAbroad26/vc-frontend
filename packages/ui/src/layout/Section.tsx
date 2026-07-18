@@ -15,8 +15,8 @@ export function Section({ title, description, actions, className, children, ...r
       {(title || actions) && (
         <div className="flex items-center justify-between gap-4">
           <div>
-            {title && <h2 className="text-xl font-semibold text-gray-900">{title}</h2>}
-            {description && <p className="text-sm text-gray-600">{description}</p>}
+            {title && <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">{title}</h2>}
+            {description && <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>}
           </div>
           {actions}
         </div>

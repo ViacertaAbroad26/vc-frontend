@@ -18,8 +18,10 @@ export function IntakeSection({ section }: { section: IntakeSectionDef }) {
     <Card>
       <CardBody className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium text-gray-900">{section.title}</h2>
-          {section.description && <p className="mt-1 text-sm text-gray-500">{section.description}</p>}
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">{section.title}</h2>
+          {section.description && (
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{section.description}</p>
+          )}
         </div>
         {visibleQuestions.map((question) => (
           <IntakeQuestion key={question.id} question={question} />

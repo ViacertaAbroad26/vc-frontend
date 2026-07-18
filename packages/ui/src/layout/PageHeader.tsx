@@ -15,8 +15,8 @@ export function PageHeader({ title, description, actions, className, ...rest }: 
       {...rest}
     >
       <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-navy-900">{title}</h1>
-        {description && <p className="text-sm text-gray-600">{description}</p>}
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-navy-900 dark:text-gray-50">{title}</h1>
+        {description && <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>

@@ -31,7 +31,9 @@ export function IntakeQuestion({ question }: { question: IntakeQuestionDef }) {
         <div>
           {FieldLabel}
           <Input id={question.id} className="mt-1" error={!!error} {...register(question.id)} />
-          {question.helpText && <p className="mt-1 text-xs text-gray-500">{question.helpText}</p>}
+          {question.helpText && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{question.helpText}</p>
+          )}
           {error && <ErrorText>{error}</ErrorText>}
         </div>
       );
@@ -41,7 +43,9 @@ export function IntakeQuestion({ question }: { question: IntakeQuestionDef }) {
         <div>
           {FieldLabel}
           <Textarea id={question.id} className="mt-1" rows={4} error={!!error} {...register(question.id)} />
-          {question.helpText && <p className="mt-1 text-xs text-gray-500">{question.helpText}</p>}
+          {question.helpText && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{question.helpText}</p>
+          )}
           {error && <ErrorText>{error}</ErrorText>}
         </div>
       );
@@ -57,7 +61,7 @@ export function IntakeQuestion({ question }: { question: IntakeQuestionDef }) {
             onValueChange={(v) => setValue(question.id, v, { shouldValidate: true, shouldDirty: true })}
           >
             {options.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-900">
+              <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-50">
                 <RadioGroupItem value={opt.value} />
                 {opt.label}
               </label>
@@ -75,7 +79,7 @@ export function IntakeQuestion({ question }: { question: IntakeQuestionDef }) {
           {FieldLabel}
           <div className="mt-2 space-y-2">
             {options.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-900">
+              <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-50">
                 <Checkbox
                   checked={value.includes(opt.value)}
                   onCheckedChange={(checked) => {
