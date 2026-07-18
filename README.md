@@ -2,6 +2,8 @@
 
 React monorepo for the ViaCerta career-first study-abroad platform. A single app (`apps/web`, student + parent + advisor + internal ops, role-based routing) plus shared packages. Consumes the FastAPI backend at `http://localhost:8000` in dev. See [ADR-007](./ADR-007-single-app-merge.md) for why this is one app, not two.
 
+<!-- deploy check: repo visibility switched to public -->
+
 ## Quick start
 
 ```bash
