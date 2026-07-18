@@ -1,8 +1,11 @@
 import { Logo } from "@viacerta/ui";
 
 import { RegisterForm } from "@/features/auth/RegisterForm";
+import { useForceLightTheme } from "@/hooks/useForceLightTheme";
 
 export default function RegisterPage() {
+  useForceLightTheme();
+
   return (
     <div className="flex min-h-screen bg-linen-50">
       {/* Brand panel */}

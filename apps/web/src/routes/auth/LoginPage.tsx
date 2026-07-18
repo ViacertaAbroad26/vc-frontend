@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { LoginForm } from "@/features/auth/LoginForm";
 import { NAVY, NAVY_LIGHT, NAVY_MID, TEAL, TEAL_LIGHT } from "@/features/auth/brand";
+import { useForceLightTheme } from "@/hooks/useForceLightTheme";
 
 type Destination = {
   city: string;
@@ -179,6 +180,8 @@ function WorldMap() {
 }
 
 export default function LoginPage() {
+  useForceLightTheme();
+
   return (
     <div className="flex min-h-screen w-full lg:h-screen lg:overflow-hidden">
       {/* ── Brand panel ─────────────────────────────────────────────────── */}
