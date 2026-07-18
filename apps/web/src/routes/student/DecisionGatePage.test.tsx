@@ -31,7 +31,7 @@ describe("DecisionGatePage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirm decision" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Your journey")).toBeInTheDocument();
+      expect(screen.getByText("My Journey")).toBeInTheDocument();
     });
   });
 

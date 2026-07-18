@@ -33,6 +33,7 @@ import ReportBuilderPage from "@/routes/advisor/ReportBuilderPage";
 import SessionPrepPage from "@/routes/advisor/SessionPrepPage";
 import StudentDetailPage from "@/routes/advisor/StudentDetailPage";
 import StudentDocumentsPage from "@/routes/advisor/StudentDocumentsPage";
+import StudentMessagesPage from "@/routes/advisor/StudentMessagesPage";
 import UniversitySelectionPage from "@/routes/advisor/UniversitySelectionPage";
 import LoginPage from "@/routes/auth/LoginPage";
 import RegisterPage from "@/routes/auth/RegisterPage";
@@ -44,17 +45,30 @@ import OrganizationsPage from "@/routes/internal/OrganizationsPage";
 import OutcomesPage from "@/routes/internal/OutcomesPage";
 import UsersPage from "@/routes/internal/UsersPage";
 import ParentSummaryPage from "@/routes/parent/ParentSummaryPage";
+import AchievementsPage from "@/routes/student/AchievementsPage";
+import AiAssistantPage from "@/routes/student/AiAssistantPage";
+import AnalyticsPage from "@/routes/student/AnalyticsPage";
 import DecisionGatePage from "@/routes/student/DecisionGatePage";
 import DocumentsPage from "@/routes/student/DocumentsPage";
 import IntakeFormPage from "@/routes/student/IntakeFormPage";
 import IntakeStartPage from "@/routes/student/IntakeStartPage";
 import JourneyPage from "@/routes/student/JourneyPage";
+import MessagesPage from "@/routes/student/MessagesPage";
 import MySessionPrepPage from "@/routes/student/MySessionPrepPage";
 import NotificationPreferencesPage from "@/routes/student/NotificationPreferencesPage";
 import NotificationsPage from "@/routes/student/NotificationsPage";
 import PendingPage from "@/routes/student/PendingPage";
 import ProfilePage from "@/routes/student/ProfilePage";
 import ReportPage from "@/routes/student/ReportPage";
+import Stage1AssessmentPage from "@/routes/student/stages/AssessmentPage";
+import ApplicationExecutionPage from "@/routes/student/stages/ApplicationExecutionPage";
+import CareerStrategyPage from "@/routes/student/stages/CareerStrategyPage";
+import DiscoveryPage from "@/routes/student/stages/DiscoveryPage";
+import Stage6PreDeparturePage from "@/routes/student/stages/PreDeparturePage";
+import CareerSuccessPage from "@/routes/student/stages/CareerSuccessPage";
+import UniversityStrategyPage from "@/routes/student/stages/UniversityStrategyPage";
+import VisaFinancePage from "@/routes/student/stages/VisaFinancePage";
+import StagePlaceholderPage from "@/routes/student/stages/StagePlaceholderPage";
 
 // Exported separately so tests can build a `createMemoryRouter` from the
 // same route tree without a real browser history.
@@ -83,6 +97,19 @@ export const routeObjects: RouteObject[] = [
       { path: "/session-prep", element: <MySessionPrepPage /> },
       { path: "/notifications", element: <NotificationsPage /> },
       { path: "/notifications/preferences", element: <NotificationPreferencesPage /> },
+      { path: "/messages", element: <MessagesPage /> },
+      { path: "/achievements", element: <AchievementsPage /> },
+      { path: "/analytics", element: <AnalyticsPage /> },
+      { path: "/ai-assistant", element: <AiAssistantPage /> },
+      { path: "/journey/stage-0", element: <DiscoveryPage /> },
+      { path: "/journey/stage-1", element: <Stage1AssessmentPage /> },
+      { path: "/journey/stage-2", element: <CareerStrategyPage /> },
+      { path: "/journey/stage-3", element: <UniversityStrategyPage /> },
+      { path: "/journey/stage-4", element: <ApplicationExecutionPage /> },
+      { path: "/journey/stage-5", element: <VisaFinancePage /> },
+      { path: "/journey/stage-6", element: <Stage6PreDeparturePage /> },
+      { path: "/journey/stage-7", element: <CareerSuccessPage /> },
+      { path: "/journey/stage-:stageNumber", element: <StagePlaceholderPage /> },
 
       // Parent
       { path: "/parent/students/:studentId", element: <ParentSummaryPage /> },
@@ -122,6 +149,7 @@ export const routeObjects: RouteObject[] = [
           { path: "applications", element: <ApplicationTrackerPage /> },
           { path: "pre-departure", element: <PreDeparturePage /> },
           { path: "placement", element: <PlacementPage /> },
+          { path: "messages", element: <StudentMessagesPage /> },
           { path: "report", element: <ReportBuilderPage /> },
           { path: "session1-questions", element: <SessionPrepPage /> },
         ],

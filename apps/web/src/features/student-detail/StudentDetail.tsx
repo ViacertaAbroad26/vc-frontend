@@ -133,6 +133,15 @@ export function StudentDetail({ studentId }: { studentId: string }) {
               </Card>
             </Link>
 
+            <Link to={routes.advisorMessages(studentId)}>
+              <Card className="h-full hover:border-navy-300">
+                <CardBody>
+                  <h3 className="font-medium text-gray-900">Messages</h3>
+                  <p className="mt-1 text-sm text-gray-500">Direct messages with this student.</p>
+                </CardBody>
+              </Card>
+            </Link>
+
             <Link to={routes.reportBuilder(studentId)}>
               <Card className="h-full hover:border-navy-300">
                 <CardBody>

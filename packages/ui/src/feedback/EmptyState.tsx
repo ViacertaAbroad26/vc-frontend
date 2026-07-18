@@ -5,7 +5,7 @@ import { cn } from "../lib/cn";
 
 export type EmptyStateProps = {
   title?: string;
-  description?: string;
+  description?: string | undefined;
   icon?: ReactNode;
   action?: ReactNode;
   className?: string;

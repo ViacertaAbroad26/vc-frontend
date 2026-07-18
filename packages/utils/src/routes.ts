@@ -17,6 +17,11 @@ export const routes = {
   notifications: "/notifications",
   notificationPreferences: "/notifications/preferences",
   parent: (studentId: string) => `/parent/students/${studentId}`,
+  stage: (n: number) => `/journey/stage-${n}`,
+  messages: "/messages",
+  aiAssistant: "/ai-assistant",
+  achievements: "/achievements",
+  analytics: "/analytics",
 
   // Advisor
   cases: "/cases",
@@ -31,6 +36,7 @@ export const routes = {
   applicationTracker: (id: string) => `/students/${id}/applications`,
   preDeparture: (id: string) => `/students/${id}/pre-departure`,
   placement: (id: string) => `/students/${id}/placement`,
+  advisorMessages: (id: string) => `/students/${id}/messages`,
   reportBuilder: (id: string) => `/students/${id}/report`,
   sessionPrep: (id: string) => `/students/${id}/session1-questions`,
   calibration: "/calibration",

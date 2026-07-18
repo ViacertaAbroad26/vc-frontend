@@ -61,8 +61,8 @@ export const reportHandlers = [
         { section: "Assessment", text: "Strong academic foundation with room to grow test scores." },
         { section: "Risks", text: "Visa timelines for Germany can run long; apply early." },
       ],
-      ninetyDayPlan: [{ week: 1, focus: "Finalise shortlist", actions: ["Research 3 universities", "Book IELTS"] }],
-      riskRegister: [{ risk: "Visa delay", severity: "MODERATE", mitigation: "Apply at least 4 months ahead." }],
+      ninetyDayPlan: [{ focus: "Finalise shortlist", action: "Research 3 universities and book IELTS.", window_days: 90 }],
+      riskRegister: [{ area: "Visa delay", severity: "MEDIUM", note: "Apply at least 4 months ahead." }],
       parentSummary: {
         cost: "Approx. €15,000/year including living costs.",
         safety: "Low crime rate, well-established student support services.",

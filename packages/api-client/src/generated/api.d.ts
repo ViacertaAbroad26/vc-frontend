@@ -94,6 +94,110 @@ export type paths = {
     /** Get Pdf */
     get: operations["get_pdf_api_v1_portal_students_me_report_pdf_get"];
   };
+  "/api/v1/portal/students/me/gcri/run": {
+    /** Run My Gcri */
+    post: operations["run_my_gcri_api_v1_portal_students_me_gcri_run_post"];
+  };
+  "/api/v1/portal/students/me/gcri": {
+    /** Get My Gcri */
+    get: operations["get_my_gcri_api_v1_portal_students_me_gcri_get"];
+  };
+  "/api/v1/portal/students/me/university-selection": {
+    /** Get My University Selection */
+    get: operations["get_my_university_selection_api_v1_portal_students_me_university_selection_get"];
+  };
+  "/api/v1/portal/students/me/document-prep": {
+    /** Get My Document Prep */
+    get: operations["get_my_document_prep_api_v1_portal_students_me_document_prep_get"];
+  };
+  "/api/v1/portal/students/me/application-tracker": {
+    /** Get My Application Tracker */
+    get: operations["get_my_application_tracker_api_v1_portal_students_me_application_tracker_get"];
+  };
+  "/api/v1/portal/students/me/essays/sop": {
+    /** Get My Sop */
+    get: operations["get_my_sop_api_v1_portal_students_me_essays_sop_get"];
+    /** Save My Sop */
+    put: operations["save_my_sop_api_v1_portal_students_me_essays_sop_put"];
+  };
+  "/api/v1/portal/students/me/essays/sop/review": {
+    /** Review My Sop */
+    post: operations["review_my_sop_api_v1_portal_students_me_essays_sop_review_post"];
+  };
+  "/api/v1/portal/students/me/lor-tracker": {
+    /** Get My Lor Tracker */
+    get: operations["get_my_lor_tracker_api_v1_portal_students_me_lor_tracker_get"];
+    /** Save My Lor Tracker */
+    put: operations["save_my_lor_tracker_api_v1_portal_students_me_lor_tracker_put"];
+  };
+  "/api/v1/portal/students/me/visa-tracker": {
+    /** Get My Visa Tracker */
+    get: operations["get_my_visa_tracker_api_v1_portal_students_me_visa_tracker_get"];
+  };
+  "/api/v1/portal/students/me/visa-checklist": {
+    /** Get My Visa Checklist */
+    get: operations["get_my_visa_checklist_api_v1_portal_students_me_visa_checklist_get"];
+    /** Save My Visa Checklist */
+    put: operations["save_my_visa_checklist_api_v1_portal_students_me_visa_checklist_put"];
+  };
+  "/api/v1/portal/students/me/financial-plan": {
+    /** Get My Financial Plan */
+    get: operations["get_my_financial_plan_api_v1_portal_students_me_financial_plan_get"];
+    /** Save My Financial Plan */
+    put: operations["save_my_financial_plan_api_v1_portal_students_me_financial_plan_put"];
+  };
+  "/api/v1/portal/students/me/pre-departure": {
+    /** Get My Pre Departure */
+    get: operations["get_my_pre_departure_api_v1_portal_students_me_pre_departure_get"];
+  };
+  "/api/v1/portal/students/me/relocation-plan": {
+    /** Get My Relocation Plan */
+    get: operations["get_my_relocation_plan_api_v1_portal_students_me_relocation_plan_get"];
+    /** Save My Relocation Plan */
+    put: operations["save_my_relocation_plan_api_v1_portal_students_me_relocation_plan_put"];
+  };
+  "/api/v1/portal/students/me/relocation-plan/milestones": {
+    /** Save My Relocation Milestones */
+    put: operations["save_my_relocation_milestones_api_v1_portal_students_me_relocation_plan_milestones_put"];
+  };
+  "/api/v1/portal/students/me/career-success": {
+    /** Get My Career Success */
+    get: operations["get_my_career_success_api_v1_portal_students_me_career_success_get"];
+  };
+  "/api/v1/portal/students/me/career-success/signals": {
+    /** Save My Career Signals */
+    put: operations["save_my_career_signals_api_v1_portal_students_me_career_success_signals_put"];
+  };
+  "/api/v1/portal/students/me/career-success/offers": {
+    /** Save My Offers */
+    put: operations["save_my_offers_api_v1_portal_students_me_career_success_offers_put"];
+  };
+  "/api/v1/portal/students/me/assistant": {
+    /** Get My Conversation */
+    get: operations["get_my_conversation_api_v1_portal_students_me_assistant_get"];
+  };
+  "/api/v1/portal/students/me/assistant/messages": {
+    /** Send My Message */
+    post: operations["send_my_message_api_v1_portal_students_me_assistant_messages_post"];
+  };
+  "/api/v1/portal/students/me/achievements": {
+    /** Get My Achievements */
+    get: operations["get_my_achievements_api_v1_portal_students_me_achievements_get"];
+  };
+  "/api/v1/portal/students/me/analytics": {
+    /** Get My Analytics */
+    get: operations["get_my_analytics_api_v1_portal_students_me_analytics_get"];
+  };
+  "/api/v1/portal/students/me/messages": {
+    /** Get My Messages */
+    get: operations["get_my_messages_api_v1_portal_students_me_messages_get"];
+    /** Send My Message */
+    post: operations["send_my_message_api_v1_portal_students_me_messages_post"];
+  };
+  "/api/v1/portal/students/me/messages/read": {
+    /** Mark My Messages Read */
+    post: operations["mark_my_messages_read_api_v1_portal_students_me_messages_read_post"];
+  };
   "/api/v1/portal/students/me/decision": {
     /** Record Decision */
     post: operations["record_decision_api_v1_portal_students_me_decision_post"];
@@ -195,6 +299,16 @@ export type paths = {
   "/api/v1/advisor/students/{student_id}/gcri/{country}/override": {
     /** Override Gcri */
     post: operations["override_gcri_api_v1_advisor_students__student_id__gcri__country__override_post"];
+  };
+  "/api/v1/advisor/students/{student_id}/messages": {
+    /** Get Student Messages */
+    get: operations["get_student_messages_api_v1_advisor_students__student_id__messages_get"];
+    /** Send Student Message */
+    post: operations["send_student_message_api_v1_advisor_students__student_id__messages_post"];
+  };
+  "/api/v1/advisor/students/{student_id}/messages/read": {
+    /** Mark Student Messages Read */
+    post: operations["mark_student_messages_read_api_v1_advisor_students__student_id__messages_read_post"];
   };
   "/api/v1/advisor/students/{student_id}/country-mapping": {
     /**
@@ -573,6 +687,26 @@ export type webhooks = Record<string, never>;
 
 export type components = {
   schemas: {
+    /** AchievementView */
+    AchievementView: {
+      /** Stage */
+      stage: number;
+      /** Label */
+      label: string;
+      /** Earned */
+      earned: boolean;
+      /** Earnedat */
+      earnedAt?: string | null;
+    };
+    /** AchievementsResponse */
+    AchievementsResponse: {
+      /** Achievements */
+      achievements: components["schemas"]["AchievementView"][];
+      /** Level */
+      level: number;
+      /** Levellabel */
+      levelLabel: string;
+    };
     /** AddressInfo */
     AddressInfo: {
       /** Addressline1 */
@@ -587,6 +721,13 @@ export type components = {
       state?: string | null;
       /** Pincode */
       pincode?: string | null;
+    };
+    /** AnalyticsResponse */
+    AnalyticsResponse: {
+      /** Snapshots */
+      snapshots: components["schemas"]["ReadinessSnapshotView"][];
+      /** Currentdimensions */
+      currentDimensions: components["schemas"]["CurrentDimensionView"][];
     };
     /** ApplicationProfileData */
     ApplicationProfileData: {
@@ -604,6 +745,25 @@ export type components = {
       testScores?: components["schemas"]["TestScore"][];
       /** Workexperience */
       workExperience?: components["schemas"]["WorkExperienceEntry"][];
+      financial?: components["schemas"]["FinancialProfile"];
+      family?: components["schemas"]["FamilyProfile"];
+    };
+    /** AssistantConversationResponse */
+    AssistantConversationResponse: {
+      /** Turns */
+      turns: components["schemas"]["AssistantTurnView"][];
+    };
+    /** AssistantTurnView */
+    AssistantTurnView: {
+      /** Role */
+      role: string;
+      /** Content */
+      content: string;
+      /**
+       * Createdat
+       * Format: date-time
+       */
+      createdAt: string;
     };
     /** AuthEnvelope */
     AuthEnvelope: {
@@ -620,12 +780,55 @@ export type components = {
       hasVisaRefusal?: boolean | null;
       /** Hascriminaloffence */
       hasCriminalOffence?: boolean | null;
+      /** Medicalconditiondetail */
+      medicalConditionDetail?: string | null;
+      /** Visarefusaldetail */
+      visaRefusalDetail?: string | null;
+      /** Criminaloffencedetail */
+      criminalOffenceDetail?: string | null;
+      /** Deportationorvisacancellation */
+      deportationOrVisaCancellation?: boolean | null;
+      /** Deportationdetail */
+      deportationDetail?: string | null;
+      /** Haspcc */
+      hasPcc?: string | null;
+      /** Supportnetworkabroad */
+      supportNetworkAbroad?: string | null;
     };
     /** Body_upload_api_v1_portal_students_me_documents_post */
     Body_upload_api_v1_portal_students_me_documents_post: {
       type: components["schemas"]["DocumentType"];
       /** File */
       file: string;
+    };
+    /** CareerPathView */
+    CareerPathView: {
+      /** Title */
+      title: string;
+      /** Entrysalaryusdrange */
+      entrySalaryUsdRange: string;
+      /** Growthratepct */
+      growthRatePct: number;
+      /** Demandlevel */
+      demandLevel: string;
+    };
+    /** CareerSuccessResponse */
+    CareerSuccessResponse: {
+      placementProbability?: components["schemas"]["PlacementProbabilityView"] | null;
+      /** Resumescore */
+      resumeScore?: number | null;
+      /** Linkedinscore */
+      linkedinScore?: number | null;
+      /**
+       * Mockinterviewscompleted
+       * @default 0
+       */
+      mockInterviewsCompleted?: number;
+      /**
+       * Offers
+       * @default []
+       */
+      offers?: components["schemas"]["JobOfferView"][];
     };
     /**
      * ChangeRequestStatus
@@ -685,6 +888,17 @@ export type components = {
        * Format: date-time
        */
       scheduledAt: string;
+    };
+    /** CurrentDimensionView */
+    CurrentDimensionView: {
+      /** Dimension */
+      dimension: string;
+      /** Label */
+      label: string;
+      /** Raw */
+      raw: number;
+      /** Max */
+      max: number;
     };
     /** DecisionRequest */
     DecisionRequest: {
@@ -808,11 +1022,88 @@ export type components = {
       /** Phone */
       phone?: string | null;
     };
+    /** EssayReviewView */
+    EssayReviewView: {
+      /** Strengths */
+      strengths: string[];
+      /** Weaknesses */
+      weaknesses: string[];
+      /** Suggestededits */
+      suggestedEdits: string[];
+      /** Originalityscore */
+      originalityScore: number;
+      /** Originalityrationale */
+      originalityRationale: string;
+    };
     /**
      * EvidenceLevel
      * @enum {string}
      */
     EvidenceLevel: "L1" | "L2" | "L3" | "L4" | "L5";
+    /**
+     * FamilyProfile
+     * @description Storage-only — not fed into GCSS scoring (household composition
+     * feeds RISK_AND_ADAPTABILITY_MINDSET only via the scored subset).
+     */
+    FamilyProfile: {
+      /** Maritalstatus */
+      maritalStatus?: string | null;
+      /** Haschildren */
+      hasChildren?: boolean | null;
+      /** Childrenages */
+      childrenAges?: string | null;
+      /** Childrenaccompanying */
+      childrenAccompanying?: string | null;
+      /** Dependentfamilymembers */
+      dependentFamilyMembers?: string | null;
+      /** Householdcomposition */
+      householdComposition?: string | null;
+      partner?: components["schemas"]["PartnerProfile"] | null;
+    };
+    /** FinancialPlanResponse */
+    FinancialPlanResponse: {
+      /** Currency */
+      currency: string;
+      /** Breakdown */
+      breakdown: components["schemas"]["FundingBreakdownItemView"][];
+      /** Totalamount */
+      totalAmount: number;
+    };
+    /**
+     * FinancialProfile
+     * @description Storage-only — not fed into GCSS scoring (see FINANCIAL_STABILITY
+     * dimension for the scored subset of financial answers).
+     */
+    FinancialProfile: {
+      /** Currency */
+      currency?: string | null;
+      /** Liquidsavings */
+      liquidSavings?: string | null;
+      /** Fundingsources */
+      fundingSources?: string[];
+      /** Hasloaneligibility */
+      hasLoanEligibility?: string | null;
+      /** Supportingassets */
+      supportingAssets?: string | null;
+      /** Maxtotalinvestment */
+      maxTotalInvestment?: string | null;
+      /** Minacceptablesalary */
+      minAcceptableSalary?: string | null;
+    };
+    /** FundingBreakdownItemInput */
+    FundingBreakdownItemInput: {
+      /** Source */
+      source: string;
+      /** Amount */
+      amount: number;
+    };
+    /** FundingBreakdownItemView */
+    FundingBreakdownItemView: {
+      /** Source */
+      source: string;
+      /** Amount */
+      amount: number;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -847,6 +1138,10 @@ export type components = {
        * @default true
        */
       required?: boolean;
+      /** Visibleif */
+      visibleIf?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** IntakeSection */
     IntakeSection: {
@@ -854,14 +1149,63 @@ export type components = {
       id: string;
       /** Title */
       title: string;
+      /** Description */
+      description?: string | null;
       /** Questions */
       questions: components["schemas"]["IntakeQuestion"][];
+      /** Visibleif */
+      visibleIf?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** IntakeStartResponse */
     IntakeStartResponse: {
       /** Submissionid */
       submissionId: string;
       form: components["schemas"]["IntakeForm"];
+    };
+    /** JobAcceptedResponse */
+    JobAcceptedResponse: {
+      /** Jobid */
+      jobId: string;
+      /**
+       * Status
+       * @default QUEUED
+       */
+      status?: string;
+    };
+    /** JobOfferInput */
+    JobOfferInput: {
+      /** Id */
+      id?: string | null;
+      /** Company */
+      company: string;
+      /** Role */
+      role: string;
+      /** Location */
+      location?: string | null;
+      /** Salary */
+      salary?: string | null;
+      /**
+       * Status
+       * @default APPLIED
+       */
+      status?: string;
+    };
+    /** JobOfferView */
+    JobOfferView: {
+      /** Id */
+      id: string;
+      /** Company */
+      company: string;
+      /** Role */
+      role: string;
+      /** Location */
+      location?: string | null;
+      /** Salary */
+      salary?: string | null;
+      /** Status */
+      status: string;
     };
     /** JourneyStageView */
     JourneyStageView: {
@@ -886,10 +1230,60 @@ export type components = {
       /** Password */
       password: string;
     };
+    /** LorRecommenderInput */
+    LorRecommenderInput: {
+      /** Id */
+      id?: string | null;
+      /** Name */
+      name: string;
+      /** Email */
+      email: string;
+      /**
+       * Status
+       * @default PENDING
+       */
+      status?: string;
+    };
+    /** LorRecommenderView */
+    LorRecommenderView: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Email */
+      email: string;
+      /** Status */
+      status: string;
+    };
+    /** LorTrackerResponse */
+    LorTrackerResponse: {
+      /** Requiredcount */
+      requiredCount: number;
+      /** Recommenders */
+      recommenders: components["schemas"]["LorRecommenderView"][];
+      /** Completedcount */
+      completedCount: number;
+    };
     /** MarkAllReadResponse */
     MarkAllReadResponse: {
       /** Markedcount */
       markedCount: number;
+    };
+    /** MessageView */
+    MessageView: {
+      /** Id */
+      id: string;
+      /** Senderrole */
+      senderRole: string;
+      /** Text */
+      text: string;
+      /**
+       * Sentat
+       * Format: date-time
+       */
+      sentAt: string;
+      /** Readat */
+      readAt?: string | null;
     };
     /** NationalityInfo */
     NationalityInfo: {
@@ -910,6 +1304,27 @@ export type components = {
       description: string;
       /** Dueat */
       dueAt?: string | null;
+    };
+    /** NinetyDayMilestoneInput */
+    NinetyDayMilestoneInput: {
+      /** Phase */
+      phase: string;
+      /** Description */
+      description: string;
+      /**
+       * Done
+       * @default false
+       */
+      done?: boolean;
+    };
+    /** NinetyDayMilestoneView */
+    NinetyDayMilestoneView: {
+      /** Phase */
+      phase: string;
+      /** Description */
+      description: string;
+      /** Status */
+      status: string;
     };
     /** NotificationItem */
     NotificationItem: {
@@ -980,6 +1395,27 @@ export type components = {
       /** Roi */
       roi: string;
     };
+    /** PartnerProfile */
+    PartnerProfile: {
+      /** Fullname */
+      fullName?: string | null;
+      /** Nationality */
+      nationality?: string | null;
+      /** Highestqualification */
+      highestQualification?: string | null;
+      /** Occupationstatus */
+      occupationStatus?: string | null;
+      /** Roleindustryexperience */
+      roleIndustryExperience?: string | null;
+      /** Englishproficiency */
+      englishProficiency?: string | null;
+      /** Willingtotestenglish */
+      willingToTestEnglish?: string | null;
+      /** Movepreference */
+      movePreference?: string | null;
+      /** Opentoleadapplicant */
+      openToLeadApplicant?: string | null;
+    };
     /** PassportInfo */
     PassportInfo: {
       /** Passportnumber */
@@ -1009,6 +1445,21 @@ export type components = {
       /** Maritalstatus */
       maritalStatus?: string | null;
     };
+    /** PlacementProbabilityView */
+    PlacementProbabilityView: {
+      /** Probability */
+      probability: number;
+      /** Probabilitylow */
+      probabilityLow: number;
+      /** Probabilityhigh */
+      probabilityHigh: number;
+      /** Label */
+      label: string;
+      /** Estimatecaption */
+      estimateCaption: string;
+      /** Disclaimer */
+      disclaimer: string;
+    };
     /** PresignedUrlResponse */
     PresignedUrlResponse: {
       /** Url */
@@ -1033,6 +1484,20 @@ export type components = {
        * Format: date-time
        */
       createdAt: string;
+    };
+    /** ReadinessSnapshotView */
+    ReadinessSnapshotView: {
+      /**
+       * Recordedat
+       * Format: date-time
+       */
+      recordedAt: string;
+      /** Gcssfinal */
+      gcssFinal: number;
+      /** Gcssflag */
+      gcssFlag: string;
+      /** Source */
+      source: string;
     };
     /** RefreshRequest */
     RefreshRequest: {
@@ -1062,6 +1527,40 @@ export type components = {
       /** Orgcode */
       orgCode?: string | null;
     };
+    /** RelocationPlanResponse */
+    RelocationPlanResponse: {
+      /** Departureat */
+      departureAt?: string | null;
+      /** Intakecity */
+      intakeCity?: string | null;
+      /** Intaketerm */
+      intakeTerm?: string | null;
+      /** Ninetydayplan */
+      ninetyDayPlan: components["schemas"]["NinetyDayMilestoneView"][];
+    };
+    /** RoiView */
+    RoiView: {
+      /** Totalinvestment */
+      totalInvestment: number;
+      /** Fiveyearearnings */
+      fiveYearEarnings: number;
+      /** Roimultiple */
+      roiMultiple?: number | null;
+      /** Breakevenyears */
+      breakEvenYears?: number | null;
+    };
+    /** SaveEssayRequest */
+    SaveEssayRequest: {
+      /** Text */
+      text: string;
+    };
+    /** SaveFinancialPlanRequest */
+    SaveFinancialPlanRequest: {
+      /** Currency */
+      currency?: string | null;
+      /** Breakdown */
+      breakdown: components["schemas"]["FundingBreakdownItemInput"][];
+    };
     /** SaveIntakeRequest */
     SaveIntakeRequest: {
       /** Answers */
@@ -1083,6 +1582,38 @@ export type components = {
        * Format: date-time
        */
       savedAt: string;
+    };
+    /** SaveLorTrackerRequest */
+    SaveLorTrackerRequest: {
+      /** Requiredcount */
+      requiredCount?: number | null;
+      /** Recommenders */
+      recommenders: components["schemas"]["LorRecommenderInput"][];
+    };
+    /** SaveMilestonesRequest */
+    SaveMilestonesRequest: {
+      /** Items */
+      items: components["schemas"]["NinetyDayMilestoneInput"][];
+    };
+    /** SaveOffersRequest */
+    SaveOffersRequest: {
+      /** Offers */
+      offers: components["schemas"]["JobOfferInput"][];
+    };
+    /** SaveVisaChecklistRequest */
+    SaveVisaChecklistRequest: {
+      /** Items */
+      items: components["schemas"]["VisaChecklistItemInput"][];
+    };
+    /** SendAssistantMessageRequest */
+    SendAssistantMessageRequest: {
+      /** Text */
+      text: string;
+    };
+    /** SendMessageRequest */
+    SendMessageRequest: {
+      /** Text */
+      text: string;
     };
     /** Session1BookingResponse */
     Session1BookingResponse: {
@@ -1110,6 +1641,36 @@ export type components = {
     StartIntakeRequest: {
       persona: components["schemas"]["Persona"];
     };
+    /** StudentApplicationItemView */
+    StudentApplicationItemView: {
+      /** Id */
+      id: string;
+      /** University */
+      university: string;
+      /** Country */
+      country: string;
+      /** Program */
+      program: string;
+      /** Status */
+      status: string;
+      /** Submittedat */
+      submittedAt?: string | null;
+      /** Decisionat */
+      decisionAt?: string | null;
+      /** Notes */
+      notes?: string | null;
+    };
+    /** StudentApplicationTrackerResponse */
+    StudentApplicationTrackerResponse: {
+      /** Status */
+      status: string;
+      /** Applications */
+      applications: components["schemas"]["StudentApplicationItemView"][];
+      /** Acceptedapplicationid */
+      acceptedApplicationId?: string | null;
+      /** Confirmedat */
+      confirmedAt?: string | null;
+    };
     /** StudentDimensionScore */
     StudentDimensionScore: {
       /** Key */
@@ -1125,6 +1686,58 @@ export type components = {
        * @default []
        */
       subScores?: components["schemas"]["StudentSubScore"][];
+    };
+    /** StudentDocumentPrepItemView */
+    StudentDocumentPrepItemView: {
+      /** Documenttype */
+      documentType: string;
+      /** Required */
+      required: boolean;
+      /** Waived */
+      waived: boolean;
+      /** Notes */
+      notes?: string | null;
+      /** Documentstatus */
+      documentStatus: string;
+    };
+    /** StudentDocumentPrepResponse */
+    StudentDocumentPrepResponse: {
+      /** Status */
+      status: string;
+      /** Items */
+      items: components["schemas"]["StudentDocumentPrepItemView"][];
+      /** Confirmedat */
+      confirmedAt?: string | null;
+    };
+    /** StudentEssayResponse */
+    StudentEssayResponse: {
+      /** Text */
+      text: string;
+      /** Version */
+      version: number;
+      lastReview?: components["schemas"]["EssayReviewView"] | null;
+      /** Lastreviewedat */
+      lastReviewedAt?: string | null;
+    };
+    /**
+     * StudentGcriDetailResponse
+     * @description Stage 2 · Career Strategy live view — same audience posture as
+     * `StudentGcriView` (no advisor override deltas/evidence), plus the
+     * recommended career-path panel.
+     */
+    StudentGcriDetailResponse: {
+      /** Assessmentid */
+      assessmentId: string;
+      /** Gcssfinal */
+      gcssFinal?: number | null;
+      /** Careervertical */
+      careerVertical: string;
+      careerPath?: components["schemas"]["CareerPathView"] | null;
+      /**
+       * Countries
+       * @default []
+       */
+      countries?: components["schemas"]["StudentGcriView"][];
     };
     /** StudentGcriFactor */
     StudentGcriFactor: {
@@ -1201,6 +1814,35 @@ export type components = {
       /** Advisorname */
       advisorName?: string | null;
     };
+    /** StudentMessageThreadResponse */
+    StudentMessageThreadResponse: {
+      /** Advisorid */
+      advisorId: string;
+      /** Messages */
+      messages: components["schemas"]["MessageView"][];
+      /** Unreadcount */
+      unreadCount: number;
+    };
+    /** StudentPreDepartureItemView */
+    StudentPreDepartureItemView: {
+      /** Task */
+      task: string;
+      /** Required */
+      required: boolean;
+      /** Done */
+      done: boolean;
+      /** Notes */
+      notes?: string | null;
+    };
+    /** StudentPreDepartureResponse */
+    StudentPreDepartureResponse: {
+      /** Status */
+      status: string;
+      /** Items */
+      items: components["schemas"]["StudentPreDepartureItemView"][];
+      /** Completedcount */
+      completedCount: number;
+    };
     /** StudentProfileResponse */
     StudentProfileResponse: {
       /** Fullname */
@@ -1238,7 +1880,11 @@ export type components = {
        *   "educationSummary": {},
        *   "educationRecords": [],
        *   "testScores": [],
-       *   "workExperience": []
+       *   "workExperience": [],
+       *   "financial": {
+       *     "fundingSources": []
+       *   },
+       *   "family": {}
        * }
        */
       applicationProfile?: components["schemas"]["ApplicationProfileData"];
@@ -1283,6 +1929,10 @@ export type components = {
       parentSummary?: components["schemas"]["ParentSummaryView"] | null;
       /** Disclaimer */
       disclaimer: string;
+      /** Intelligencebrief */
+      intelligenceBrief?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** StudentSession1Question */
     StudentSession1Question: {
@@ -1315,6 +1965,65 @@ export type components = {
       max: number;
       /** Response */
       response?: string | null;
+    };
+    /** StudentUniversityCandidateView */
+    StudentUniversityCandidateView: {
+      /** University */
+      university: string;
+      /** Country */
+      country: string;
+      /** Program */
+      program: string;
+      /** Degreelevel */
+      degreeLevel?: string | null;
+      /** Tier */
+      tier?: string | null;
+      /** Rank */
+      rank?: number | null;
+      /** Tuitionfee */
+      tuitionFee?: number | null;
+      /** Livingcostusd */
+      livingCostUsd?: number | null;
+      /**
+       * Selected
+       * @default false
+       */
+      selected?: boolean;
+      /** Acceptanceprobability */
+      acceptanceProbability?: number | null;
+      /** Employabilityscore */
+      employabilityScore: number;
+      roi: components["schemas"]["RoiView"];
+    };
+    /** StudentUniversitySelectionResponse */
+    StudentUniversitySelectionResponse: {
+      /** Status */
+      status: string;
+      /**
+       * Candidates
+       * @default []
+       */
+      candidates?: components["schemas"]["StudentUniversityCandidateView"][];
+      aggregateRoi?: components["schemas"]["RoiView"] | null;
+    };
+    /** StudentVisaTrackerResponse */
+    StudentVisaTrackerResponse: {
+      /** Country */
+      country: string;
+      /** Visastatus */
+      visaStatus: string;
+      /** Applicationsubmittedat */
+      applicationSubmittedAt?: string | null;
+      /** Biometricscompletedat */
+      biometricsCompletedAt?: string | null;
+      /** Interviewat */
+      interviewAt?: string | null;
+      /** Decisionat */
+      decisionAt?: string | null;
+      /** Pipeline */
+      pipeline: components["schemas"]["VisaStepView"][];
+      /** Confirmedat */
+      confirmedAt?: string | null;
     };
     /** SubmitIntakeResponse */
     SubmitIntakeResponse: {
@@ -1401,10 +2110,28 @@ export type components = {
       /** Total */
       total: number;
     };
+    /** UpdateCareerSignalsRequest */
+    UpdateCareerSignalsRequest: {
+      /** Resumescore */
+      resumeScore?: number | null;
+      /** Linkedinscore */
+      linkedinScore?: number | null;
+      /** Mockinterviewscompleted */
+      mockInterviewsCompleted?: number | null;
+    };
     /** UpdateNotificationPreferencesRequest */
     UpdateNotificationPreferencesRequest: {
       /** Preferences */
       preferences: components["schemas"]["NotificationPreferenceItem"][];
+    };
+    /** UpdateRelocationPlanRequest */
+    UpdateRelocationPlanRequest: {
+      /** Departureat */
+      departureAt?: string | null;
+      /** Intakecity */
+      intakeCity?: string | null;
+      /** Intaketerm */
+      intakeTerm?: string | null;
     };
     /** UpdateStudentProfileRequest */
     UpdateStudentProfileRequest: {
@@ -1460,6 +2187,47 @@ export type components = {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /** VisaChecklistItemInput */
+    VisaChecklistItemInput: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /**
+       * Done
+       * @default false
+       */
+      done?: boolean;
+      /** Statusnote */
+      statusNote?: string | null;
+    };
+    /** VisaChecklistItemView */
+    VisaChecklistItemView: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Done */
+      done: boolean;
+      /** Statusnote */
+      statusNote?: string | null;
+    };
+    /** VisaChecklistResponse */
+    VisaChecklistResponse: {
+      /** Items */
+      items: components["schemas"]["VisaChecklistItemView"][];
+      /** Completedcount */
+      completedCount: number;
+    };
+    /** VisaStepView */
+    VisaStepView: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Status */
+      status: string;
     };
     /** WorkExperienceEntry */
     WorkExperienceEntry: {
@@ -1546,6 +2314,33 @@ export type components = {
       /** Subscores */
       subScores: components["schemas"]["AdvisorSubScore"][];
     };
+    /** AdvisorMessageThreadResponse */
+    AdvisorMessageThreadResponse: {
+      /** Studentid */
+      studentId: string;
+      /** Advisorid */
+      advisorId: string;
+      /** Messages */
+      messages: components["schemas"]["AdvisorMessageView"][];
+      /** Unreadcount */
+      unreadCount: number;
+    };
+    /** AdvisorMessageView */
+    AdvisorMessageView: {
+      /** Id */
+      id: string;
+      /** Senderrole */
+      senderRole: string;
+      /** Text */
+      text: string;
+      /**
+       * Sentat
+       * Format: date-time
+       */
+      sentAt: string;
+      /** Readat */
+      readAt?: string | null;
+    };
     /** AdvisorReportResponse */
     AdvisorReportResponse: {
       /** Id */
@@ -1581,6 +2376,11 @@ export type components = {
       publishedAt?: string | null;
       /** Disclaimer */
       disclaimer: string;
+    };
+    /** AdvisorSendMessageRequest */
+    AdvisorSendMessageRequest: {
+      /** Text */
+      text: string;
     };
     /** AdvisorStudentDetailResponse */
     AdvisorStudentDetailResponse: {
@@ -2232,16 +3032,6 @@ export type components = {
       /** Text */
       text: string;
     };
-    /** JobAcceptedResponse */
-    JobAcceptedResponse: {
-      /** Jobid */
-      jobId: string;
-      /**
-       * Status
-       * @default QUEUED
-       */
-      status?: string;
-    };
     /**
      * JourneyStateCode
      * @enum {string}
@@ -2618,10 +3408,14 @@ export type components = {
       degreeLevel?: string | null;
       /** Tuitionfee */
       tuitionFee?: number | null;
+      /** Livingcostusd */
+      livingCostUsd?: number | null;
       /** Applicationdeadline */
       applicationDeadline?: string | null;
       /** Rank */
       rank?: number | null;
+      /** Tier */
+      tier?: string | null;
       /**
        * Selected
        * @default false
@@ -2644,10 +3438,14 @@ export type components = {
       degreeLevel?: string | null;
       /** Tuitionfee */
       tuitionFee?: number | null;
+      /** Livingcostusd */
+      livingCostUsd?: number | null;
       /** Applicationdeadline */
       applicationDeadline?: string | null;
       /** Rank */
       rank?: number | null;
+      /** Tier */
+      tier?: string | null;
       /**
        * Selected
        * @default false
@@ -2725,6 +3523,8 @@ export type components = {
       visaStatus?: string | null;
       /** Applicationsubmittedat */
       applicationSubmittedAt?: string | null;
+      /** Biometricscompletedat */
+      biometricsCompletedAt?: string | null;
       /** Interviewat */
       interviewAt?: string | null;
       /** Decisionat */
@@ -2800,6 +3600,8 @@ export type components = {
       visaStatus: string;
       /** Applicationsubmittedat */
       applicationSubmittedAt?: string | null;
+      /** Biometricscompletedat */
+      biometricsCompletedAt?: string | null;
       /** Interviewat */
       interviewAt?: string | null;
       /** Decisionat */
@@ -3409,6 +4211,810 @@ export type operations = {
       200: {
         content: {
           "application/json": components["schemas"]["PresignedUrlResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Run My Gcri */
+  run_my_gcri_api_v1_portal_students_me_gcri_run_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["JobAcceptedResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Gcri */
+  get_my_gcri_api_v1_portal_students_me_gcri_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentGcriDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My University Selection */
+  get_my_university_selection_api_v1_portal_students_me_university_selection_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentUniversitySelectionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Document Prep */
+  get_my_document_prep_api_v1_portal_students_me_document_prep_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentDocumentPrepResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Application Tracker */
+  get_my_application_tracker_api_v1_portal_students_me_application_tracker_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentApplicationTrackerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Sop */
+  get_my_sop_api_v1_portal_students_me_essays_sop_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentEssayResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Sop */
+  save_my_sop_api_v1_portal_students_me_essays_sop_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveEssayRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentEssayResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Review My Sop */
+  review_my_sop_api_v1_portal_students_me_essays_sop_review_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentEssayResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Lor Tracker */
+  get_my_lor_tracker_api_v1_portal_students_me_lor_tracker_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LorTrackerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Lor Tracker */
+  save_my_lor_tracker_api_v1_portal_students_me_lor_tracker_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveLorTrackerRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LorTrackerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Visa Tracker */
+  get_my_visa_tracker_api_v1_portal_students_me_visa_tracker_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentVisaTrackerResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Visa Checklist */
+  get_my_visa_checklist_api_v1_portal_students_me_visa_checklist_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["VisaChecklistResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Visa Checklist */
+  save_my_visa_checklist_api_v1_portal_students_me_visa_checklist_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveVisaChecklistRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["VisaChecklistResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Financial Plan */
+  get_my_financial_plan_api_v1_portal_students_me_financial_plan_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FinancialPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Financial Plan */
+  save_my_financial_plan_api_v1_portal_students_me_financial_plan_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveFinancialPlanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FinancialPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Pre Departure */
+  get_my_pre_departure_api_v1_portal_students_me_pre_departure_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentPreDepartureResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Relocation Plan */
+  get_my_relocation_plan_api_v1_portal_students_me_relocation_plan_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RelocationPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Relocation Plan */
+  save_my_relocation_plan_api_v1_portal_students_me_relocation_plan_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateRelocationPlanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RelocationPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Relocation Milestones */
+  save_my_relocation_milestones_api_v1_portal_students_me_relocation_plan_milestones_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveMilestonesRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RelocationPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Career Success */
+  get_my_career_success_api_v1_portal_students_me_career_success_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CareerSuccessResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Career Signals */
+  save_my_career_signals_api_v1_portal_students_me_career_success_signals_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateCareerSignalsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CareerSuccessResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save My Offers */
+  save_my_offers_api_v1_portal_students_me_career_success_offers_put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveOffersRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CareerSuccessResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Conversation */
+  get_my_conversation_api_v1_portal_students_me_assistant_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AssistantConversationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Send My Message */
+  send_my_message_api_v1_portal_students_me_assistant_messages_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SendAssistantMessageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AssistantConversationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Achievements */
+  get_my_achievements_api_v1_portal_students_me_achievements_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AchievementsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Analytics */
+  get_my_analytics_api_v1_portal_students_me_analytics_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AnalyticsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get My Messages */
+  get_my_messages_api_v1_portal_students_me_messages_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentMessageThreadResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Send My Message */
+  send_my_message_api_v1_portal_students_me_messages_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SendMessageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentMessageThreadResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Mark My Messages Read */
+  mark_my_messages_read_api_v1_portal_students_me_messages_read_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StudentMessageThreadResponse"];
         };
       };
       /** @description Validation Error */
@@ -4215,6 +5821,98 @@ export type operations = {
       200: {
         content: {
           "application/json": components["schemas"]["GcriResultResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Student Messages */
+  get_student_messages_api_v1_advisor_students__student_id__messages_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+      path: {
+        student_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdvisorMessageThreadResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Send Student Message */
+  send_student_message_api_v1_advisor_students__student_id__messages_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+      path: {
+        student_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdvisorSendMessageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdvisorMessageThreadResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Mark Student Messages Read */
+  mark_student_messages_read_api_v1_advisor_students__student_id__messages_read_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+        "x-dev-role"?: string | null;
+        "x-dev-user"?: string | null;
+        "x-dev-student"?: string | null;
+        "x-dev-org"?: string | null;
+      };
+      path: {
+        student_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdvisorMessageThreadResponse"];
         };
       };
       /** @description Validation Error */

@@ -8,7 +8,7 @@ describe("JourneyPage", () => {
 
     expect(await screen.findByText("Finish and submit your intake form.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Continue intake" })).toBeInTheDocument();
-    expect(screen.getByText("Stage 1 · Assessment")).toBeInTheDocument();
-    expect(screen.getByText("In progress")).toBeInTheDocument();
+    expect(screen.getByText(/Stage 1 · Global Career Assessment/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Continue" })).toBeInTheDocument();
   });
 });
